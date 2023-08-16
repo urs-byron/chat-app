@@ -21,16 +21,17 @@ export interface memberValues {
   accnt_name: string;
 }
 
+export interface iMsgBody {
+  msg: string;
+  msgId: string;
+  senderName: string;
+  senderId: string;
+  timeReceived: number;
+}
+
 export interface iChatMsgs {
   str_id: string;
-  list: Array<{
-    sender: string;
-    value: string;
-    time_sent: Date;
-    time_received: Date;
-    time_read?: Date;
-  }>;
-
+  list: iMsgBody[];
   count: Number;
 }
 
@@ -53,11 +54,3 @@ export interface iChat {
 export interface iChatMsgsDoc extends iChatMsgs, Document {}
 export interface iChatRulesDoc extends iChatRules, Document {}
 export interface iChatDoc extends iChat, Document {}
-
-export interface iMsgBody {
-  msg: string;
-  msgId: string;
-  senderName: string;
-  senderId: string;
-  timeReceived: number;
-}

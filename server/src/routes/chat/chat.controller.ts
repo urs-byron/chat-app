@@ -113,7 +113,9 @@ export async function getMsgsId(
       chat_id: chatId,
     } as iChat).lean()) as iChatDoc;
 
-    return chatDoc.msgs_id;
+    if (chatDoc === null)
+      return newApiError(500, "server found no matching chat id");
+    else return chatDoc.msgs_id;
   } catch (err) {
     return newApiError(500, "server is unable to search for chat doc", err);
   }
@@ -174,6 +176,7 @@ export async function getDocMsgs(
       { $project: { msgs: { $slice: ["$msgs", skip, limit] } } },
     ]);
 
+    if (!msgs.length) return [];
     return msgs[0].msgs as iMsgBody[];
   } catch (err) {
     return newApiError(
@@ -190,6 +193,9 @@ export async function cacheMsgs(
 ): Promise<APIError | Error | void> {
   const tx = redis.client.multi();
   let msg: iMsgBody;
+
+  if (msgs === null || !Array.isArray(msgs) || !msgs.length) return;
+
   for (msg of msgs) {
     tx.json.set(
       redis.chatSetItemName(chatId, msg.msgId),

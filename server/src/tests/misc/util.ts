@@ -10,6 +10,8 @@ import {
 } from "../../routes/group/group.controller";
 import { Group } from "../../models/group.model";
 import { User } from "../../models/user.model";
+import { iChat, iMsgBody } from "../../models/chat.imodel";
+import { Chat } from "../../models/chat.model";
 
 export class TestUtil {
   static readonly createSampleGroup = (i: number = 5): iGroup[] => {
@@ -49,69 +51,104 @@ export class TestUtil {
 
     return users;
   };
-  static readonly createDiffConRel: (
+  static readonly createSampleChat = (i: number = 5): iChat[] => {
+    const chatArr: iChat[] = [];
+
+    for (let index = 0; index < i; index++) {
+      chatArr.push({
+        chat_id: `sampleChatId${index}`,
+        msgs_id: `sampleMsgsId${index}`,
+        rules_id: `sampleRulesId${index}`,
+      });
+    }
+
+    return chatArr;
+  };
+  static readonly createSampleMsgs = (i: number = 5): iMsgBody[] => {
+    const chatArr: iMsgBody[] = [];
+
+    for (let index = 0; index < i; index++) {
+      chatArr.push({
+        msg: `sampleChatId${index}`,
+        msgId: `sampleMsgsId${index}`,
+        senderId: `sampleSenderId${index}`,
+        senderName: `sampleSenderName${index}`,
+        timeReceived: index,
+      });
+    }
+
+    return chatArr;
+  };
+  static readonly createDiffConRel = (
     c?: number,
     m?: number,
     b?: number
-  ) => iRelation[] = (c = 2, m = 2, b = 2) => {
+  ): iRelation[] => {
     let i: number = 0;
     const rels: iRelation[] = [];
 
-    for (let index = 0; index < c; index++, i++) {
-      rels.push({
-        accnt_id: `sampleAccntId${i}`,
-        accnt_name: `sampleAccntName${i}`,
-        type: `sampletype${i}`,
-        chat_id: `samplechat_id${i}`,
-        admin: false,
-        block: false,
-        mute: false,
-        archive: false,
-        bump: i,
-      });
-    }
-    for (let index = 0; index < m; index++, i++) {
-      rels.push({
-        accnt_id: `sampleAccntId${i}`,
-        accnt_name: `sampleAccntName${i}`,
-        type: `sampletype${i}`,
-        chat_id: `samplechat_id${i}`,
-        admin: false,
-        block: false,
-        mute: true,
-        archive: false,
-        bump: i,
-      });
-    }
-    for (let index = 0; index < b; index++, i++) {
-      rels.push({
-        accnt_id: `sampleAccntId${i}`,
-        accnt_name: `sampleAccntName${i}`,
-        type: `sampletype${i}`,
-        chat_id: `samplechat_id${i}`,
-        admin: false,
-        block: true,
-        mute: false,
-        archive: false,
-        bump: i,
-      });
-    }
+    if (c !== undefined)
+      for (let index = 0; index < c; index++, i++) {
+        rels.push({
+          accnt_id: `sampleAccntId${i}`,
+          accnt_name: `sampleAccntName${i}`,
+          type: `sampletype${i}`,
+          chat_id: `samplechat_id${i}`,
+          admin: false,
+          block: false,
+          mute: false,
+          archive: false,
+          bump: i,
+        });
+      }
+
+    if (m !== undefined)
+      for (let index = 0; index < m; index++, i++) {
+        rels.push({
+          accnt_id: `sampleAccntId${i}`,
+          accnt_name: `sampleAccntName${i}`,
+          type: `sampletype${i}`,
+          chat_id: `samplechat_id${i}`,
+          admin: false,
+          block: false,
+          mute: true,
+          archive: false,
+          bump: i,
+        });
+      }
+
+    if (b !== undefined)
+      for (let index = 0; index < b; index++, i++) {
+        rels.push({
+          accnt_id: `sampleAccntId${i}`,
+          accnt_name: `sampleAccntName${i}`,
+          type: `sampletype${i}`,
+          chat_id: `samplechat_id${i}`,
+          admin: false,
+          block: true,
+          mute: false,
+          archive: false,
+          bump: i,
+        });
+      }
 
     return rels;
   };
-  static readonly createSampleGroupDoc: (grps: iGroup[]) => Promise<void> =
-    async (grps) => {
-      for (const grp of grps) {
-        await Group.create(grp);
-      }
-    };
-  static readonly createSampleUserDoc: (usrs: iUser[]) => Promise<void> =
-    async (usrs) => {
-      let usr: iUser;
-      for (usr of usrs) {
-        await User.create(usr);
-      }
-    };
+  static readonly createSampleGroupDoc = async (
+    grps: iGroup[]
+  ): Promise<void> => {
+    for (const grp of grps) {
+      await Group.create(grp);
+    }
+  };
+  static readonly createSampleUserDoc = async (
+    usrs: iUser[]
+  ): Promise<void> => {
+    let usr: iUser;
+    for (usr of usrs) {
+      await User.create(usr);
+    }
+  };
   static readonly createSampleGroupRelCache = async (
     userId: string,
     grps: iGroup[]
@@ -196,5 +233,42 @@ export class TestUtil {
         RedisMethods.client.multi()
       );
     });
+  };
+  static readonly createSampleChatDocs = async (
+    cArr: iChat[]
+  ): Promise<void> => {
+    let c: iChat;
+
+    for (c of cArr) {
+      await Chat.create(c);
+    }
+  };
+  static readonly createSampleMsgsCache = async (
+    chatId: string,
+    mArr: iMsgBody[]
+  ): Promise<void> => {
+    const tx = RedisMethods.client.multi();
+
+    mArr.forEach((msg: iMsgBody) => {
+      tx.json.set(
+        RedisMethods.chatSetItemName(chatId, msg.msgId),
+        "$",
+        RedisMethods.redifyObj(msg)
+      );
+    });
+
+    await tx.exec();
+  };
+  static readonly deleteSampleMsgsCache = async (
+    chatId: string,
+    mArr: iMsgBody[]
+  ): Promise<void> => {
+    const tx = RedisMethods.client.multi();
+
+    mArr.forEach((msg: iMsgBody) => {
+      tx.json.del(RedisMethods.chatSetItemName(chatId, msg.msgId));
+    });
+
+    await tx.exec();
   };
 }
