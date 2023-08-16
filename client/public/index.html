@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Wired Chat</title>
+    <link rel="icon" type="image/png" href="./img/wired-icon-modified.ico" />
+    <link rel="stylesheet" href="./css/index.style.css" />
+    <script
+      src="https://kit.fontawesome.com/449ddc07f5.js"
+      crossorigin="anonymous"
+    ></script>
+    <script type="module" src="./bundle.js" defer></script>
+  </head>
+  <body>
+    <template id="auth-temp">
+      <div class="auth-wrap">
+        <div class="loader">
+          <div class="loader-item">
+            <img src="./img/discuss.gif" alt="loading image" />
+            <p>wiring to server</p>
+          </div>
+        </div>
+        <div class="auth-comp hideElement">
+          <h1>Register</h1>
+          <form id="register-form" method="post" action="/auth/register">
+            <label for="username">username</label>
+            <input type="text" id="reg-username" name="username" required />
+            <br />
+            <label for="password">password</label>
+            <input type="password" id="reg-password" name="password" required />
+            <br />
+            <label for="rePassword">confirm password</label>
+            <input
+              type="password"
+              id="reg-rePassword"
+              name="rePassword"
+              required
+            />
+            <br />
+            <input type="submit" value="submit" />
+          </form>
+          <br />
+          <h1>Login</h1>
+          <form id="login-form" method="post" action="/auth/login">
+            <label for="username">username</label>
+            <input id="log-username" type="text" name="username" />
+            <br />
+            <label for="password">password</label>
+            <input id="log-password" type="password" name="password" />
+            <br />
+            <input type="submit" value="submit" />
+          </form>
+          <a href="/auth/login/google">google</a>
+          <br />
+          <a href="/auth/login/facebook">facebook</a>
+          <br />
+          <a href="/auth/login/github">github</a>
+        </div>
+      </div>
+    </template>
+    <template id="chat-temp">
+      <div class="chat-wrap">
+        <!-- --------- -->
+        <!-- CHAT USER -->
+        <!-- --------- -->
+        <div class="chat-user-wrap"></div>
+
+        <!-- ---------- -->
+        <!-- CHAT PEERS -->
+        <!-- ---------- -->
+        <div class="chat-peer-wrap"></div>
+
+        <!-- ------------- -->
+        <!-- CHAT MESSAGES -->
+        <!-- ------------- -->
+        <div class="chat-msgs-wrap"></div>
+      </div>
+    </template>
+    <template id="user-temp"
+      ><div class="chat-user">
+        <div class="chat-user-name">
+          <i class="chat-user-remove fa-solid fa-arrow-left-long"></i>
+          <h2>User Settings</h2>
+        </div>
+        <div id="chat-user-invitations-wrap">
+          <h4 id="chat-user-invitations-head" class="chat-user-head">
+            <i class="fa-solid fa-chevron-up"></i>requests
+          </h4>
+          <div class="chat-user-invitations chat-user-content">
+            <div id="chat-user-invitations-incoming">
+              <h5>incoming</h5>
+              <div class="chat-user-incoming-items-wrap"></div>
+            </div>
+            <div id="chat-user-invitations-outgoing">
+              <h5>outgoing</h5>
+              <div class="chat-user-outgoing-items-wrap"></div>
+            </div>
+          </div>
+        </div>
+        <div id="chat-user-mutes-blocks-wrap">
+          <h4 id="chat-user-mutes-blocks-head" class="chat-user-head">
+            <i class="fa-solid fa-chevron-up"></i>
+            mutes & blocks
+          </h4>
+          <div class="chat-user-mutes-blocks- chat-user-content">
+            <div class="chat-user-mutes">
+              <h5>mutes</h5>
+              <div class="chat-user-mute-items-wrap"></div>
+            </div>
+            <div class="chat-user-blocks">
+              <h5>blocks</h5>
+              <div class="chat-user-block-items-wrap"></div>
+            </div>
+          </div>
+        </div>
+        <div class="chat-user-security-wrap">
+          <h4 id="chat-user-security-head" class="chat-user-head">
+            <i class="fa-solid fa-chevron-up"></i>Security
+          </h4>
+          <div class="chat-user-security chat-user-content">
+            <p class="chat-user-security-public">public</p>
+            <p class="chat-user-security-availability">availability</p>
+          </div>
+        </div>
+        <div id="chat-user-password-wrap">
+          <h4 id="chat-user-password-head" class="chat-user-head">
+            <i class="fa-solid fa-chevron-up"></i>Password
+          </h4>
+          <form action="" class="chat-user-set-password chat-user-content">
+            <input type="password" name="password" id="set-password" />
+            <input type="password" name="password" id="set-rePassword" />
+            <button type="submit" value="submit">change password</button>
+          </form>
+        </div>
+        <div class="chat-user-logout">logout</div>
+      </div>
+    </template>
+    <template id="error-temp">
+      <div class="error-wrap hideElement invisibleElem">
+        <h4 class="error-head">Error Head</h4>
+        <p class="error-content"></p>
+      </div>
+    </template>
+    <template id="peer-temp">
+      <div class="chat-peer">
+        <div class="chat-user-toggle">
+          <i class="fa-solid fa-bars"></i>
+          <h2>Menu</h2>
+        </div>
+        <form action="" class="chat-search-form">
+          <button class="chat-remove-search">
+            <i class="fa-solid fa-arrow-left-long"></i>
+          </button>
+          <input type="text" id="chat-search-input" autocomplete="off" />
+          <button type="submit" value="submit">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </button>
+        </form>
+        <div class="chat-lists-wrap">
+          <div class="chat-lists-head">
+            <h2>
+              Search
+              <div class="chat-search-types">
+                <button class="chat-search-type-user" data-chat-type="user">
+                  users
+                </button>
+                <button class="chat-search-type-group" data-chat-type="group">
+                  groups
+                </button>
+              </div>
+            </h2>
+            <h2>Contacts</h2>
+          </div>
+          <div class="chat-lists">
+            <div class="chat-search-list-wrap">
+              <div class="chat-search-list"></div>
+            </div>
+            <div class="chat-contact-list-wrap">
+              <div class="chat-contact-list">
+                <!-- <div class="chat-contact-item">
+                  <div class="chat-contact-info">
+                    <h3>Name</h3>
+                    <p>(TIME) Last Message</p>
+                  </div>
+                  <div class="chat-contact-tooltip">
+                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                    <div class="chat-contact-tooltip-content">
+                      <p>archive</p>
+                      <p>mute</p>
+                      <p>block</p>
+                    </div>
+                  </div>
+                </div> -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+    <template id="msgs-temp">
+      <div class="chat-msgs"></div>
+    </template>
+    <template id="msgs-list-temp">
+      <div class="chat-msg-list">
+        <div class="chat-msg-head">
+          <div class="chat-msg-head-name">
+            <h2>Name</h2>
+          </div>
+          <div class="chat-msg-head-opts-btn">
+            <i class="fa-solid fa-users-rays"></i>
+            <div class="chat-msg-group-modal">
+              <div class="chat-msg-groups-head">
+                <h3>refer membership:</h3>
+                <i class="fa-solid fa-check"></i>
+              </div>
+              <div class="chat-msg-groups">
+                <!-- <div class="chat-msg-group-item">
+                  <h4>grp 1</h4>
+                  <div class="chat-msg-group-action">
+                    <span>undo</span>
+                    <i class="fa-solid fa-plus"></i>
+                  </div>
+                </div> -->
+              </div>
+              <form class="chat-msg-group-new" action="">
+                <input
+                  type="text"
+                  name="newGroup"
+                  value=""
+                  placeholder="  new group name"
+                  autocomplete="off"
+                  required
+                />
+                <button type="submit" value="submit">create group</button>
+              </form>
+            </div>
+          </div>
+        </div>
+        <div class="chat-msg-body-wrap">
+          <div id="chat-msg-body"></div>
+        </div>
+        <div class="chat-msg-forms-wrap">
+          <div class="chat-msg-forms">
+            <button class="chat-msg-request">Request Contact</button>
+            <form action="" class="chat-msg-form">
+              <input type="text" />
+              <button type="submit" value="submit">
+                <i class="fa-solid fa-paper-plane"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </template>
+    <template id="msgs-opts-temp">
+      <div class="chat-msg-opts">
+        <h2>Chat Settings</h2>
+        <div id="chat-msg-opts-memberships-wrap">
+          <h4 id="chat-msg-opts-memberships-head" class="chat-msg-opts-head">
+            <i class="fa-solid fa-chevron-up"></i>Requests
+          </h4>
+          <div id="chat-msg-opts-memberships" class="chat-msg-opts-content">
+            <div id="chat-msg-opts-incoming">
+              <h5>Incoming</h5>
+              <div class="chat-msg-opts-incoming-wrap"></div>
+            </div>
+            <div id="chat-msg-opts-outgoing">
+              <h5>Outgoing</h5>
+              <div class="chat-msg-opts-outgoing-wrap"></div>
+            </div>
+          </div>
+        </div>
+        <div id="chat-msg-opts-admin-wrap">
+          <h4 id="chat-msg-opts-admins-head" class="chat-msg-opts-head">
+            <i class="fa-solid fa-chevron-up"></i>Admin
+          </h4>
+          <div id="chat-msg-opts-admins" class="chat-msg-opts-content">
+            <div class="chat-msg-opts-admins-wrap"></div>
+          </div>
+        </div>
+        <div id="chat-msg-opts-members-wrap">
+          <h4 id="chat-msg-opts-members-head" class="chat-msg-opts-head">
+            <i class="fa-solid fa-chevron-up"></i>Members
+          </h4>
+          <div id="chat-msg-opts-members" class="chat-msg-opts-content">
+            <div class="chat-msg-opts-members-wrap"></div>
+          </div>
+        </div>
+        <div class="chat-msg-opts-security-wrap">
+          <h4 id="chat-msg-opts-security-head" class="chat-msg-opts-head">
+            <i class="fa-solid fa-chevron-up"></i>Security
+          </h4>
+          <div id="chat-msg-opts-security" class="chat-msg-opts-content">
+            <p>public</p>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <div class="chat-app-wrap">
+      <div class="chat-app"></div>
+    </div>
+  </body>
+</html>

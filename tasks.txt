@@ -1,0 +1,63 @@
+┌-----------------------------------------------------------┐
+| user send request to recipient via client fetch           |
+|      └ if                                                 |
+|           ├ recipient is within user contact              |
+|           └ user is within recipient contact*             |
+|                └ cancel request                           |
+|           ├ recipient is within user outgoing request     |
+|                └ approved : cancel request                |
+|                └ rejected : change existing request to    |  \                             undecided                     |
+|      └ else                                               |
+|           ├ add request to user outgoing                  |
+|           └ add request to recipient incoming             |
+└-----------------------------------------------------------┘
+* blocking is not checked since blocking a peer adds them to the blocking user's contact list without minding the blocked peers relations
+
+┌-----------------------------------------------------------┐
+| user request handler                                      |
+|   └ approve                                               |
+|        ├ add user to recipient contacts                   |
+|        └ add recipient to user contacts                   |
+|   └ reject                                                |
+|        ├ update user incoming request to rejected         |
+|        └ update recipient outgoing request to rejected    |
+└-----------------------------------------------------------┘
+
+add block-mute user section
+
+latest message logic
+--- null logic
+--- chatDB will be updated for every new message
+
+client-dataset & contact generation skip-next logic
+
+user | group search skip-next logic
+
+
+┌ ┬ ┐ 	
+├   ┤
+└ ┴ ┘
+
+///// URGENT
+--- Chat Rules will no longer be implemented 
+--- FIX socket CB
+
+POST membership request
+
+POST message Reply logic
+--- put related peer list item to top
+--- check if current MessageListComp is target peer
+------ true: create new message item
+------ false: return
+
+///// CURRENT TASKS
+
+CLIENT
+--- block, unblock, approve of groups must reflect on session storage && groupClass
+--- if user is already on mute before block, remove user from mute after block
+
+SERVER
+--- db aggregate[0] change 
+--- fix redis.discard use
+--- object bool validations
+--- e2e testing

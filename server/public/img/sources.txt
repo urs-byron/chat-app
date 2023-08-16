@@ -1,0 +1,8 @@
+ /////////// dual_ring.gif
+ https://loading.io/spinner/dual-ring/-disqus-ring-donut-rotate
+
+ /////////// eclipse.gif
+ https://loading.io/spinner/eclipse/-eclipse-ring-circle-rotate
+
+ /////////// discuss.gif
+ https://loading.io/spinner/discuss/-discuss-bubble-talk-speak-ring-rotate

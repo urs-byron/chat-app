@@ -1,0 +1,16 @@
+some time "next next month" pwede ba magpa review ako ng ts node express code?
+
+bale chat-like app siya with
+- passport
+- mongo
+- socket
+- redis
+- jest
+
+gusto ko makahingi ng feedback 
+- about sa nakasulat sa taas
+- work practice na magandang i-apply sa taas
+     - na walang kinalaman sa AWS
+       (wala akong debit, di ko na-test)
+
+P700 review fee, g?
