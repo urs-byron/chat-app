@@ -12,11 +12,11 @@
 <hr>
 
 <h2>Project Key Features</h2>
-<h4>Secure Local Registration & 3rd Party Authentication</h4>
-<h4>Faster Data Processing with Redis Stack</h4>
-<h4>Real-time data communication with Socket.IO</h4>
-<h4>Tested using Jest</h4>
-<h4>Improved code reliability with TypeScript & centralized error management</h4>
+<p>Secure Local Registration & 3rd Party Authentication</p>
+<p>Faster Data Processing with Redis Stack</p>
+<p>Real-time data communication with Socket.IO</p>
+<p>Tested using Jest</p>
+<p>Improved code reliability with TypeScript & centralized error management</p>
 
 <hr>
 
