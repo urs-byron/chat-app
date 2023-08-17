@@ -1,25 +1,25 @@
 import "dotenv/config";
 import { iUser } from "../../../../models/user.imodel";
-import {
-  validateChatReqBody,
-  getMsgsId,
-  checkChatInfo,
-  getCacheMsgs,
-  getDocMsgs,
-  cacheMsgs,
-} from "../../../../routes/chat/chat.controller";
-import {
-  iChat,
-  iChatMsgs,
-  iChatReqBody,
-  iMsgBody,
-} from "../../../../models/chat.imodel";
+import { TestUtil } from "../../../misc/util";
 import { APIError } from "../../../../global/httpErrors.global";
 import { RedisMethods } from "../../../../services/redis.srvcs";
-import { MongoDBMethods } from "../../../../services/mongo.srvcs";
-import { TestUtil } from "../../../misc/util";
-import { Chat, ChatMessages } from "../../../../models/chat.model";
 import { chatMsgSkipCnt } from "../../../../global/search.global";
+import { MongoDBMethods } from "../../../../services/mongo.srvcs";
+import { Chat, ChatMessages } from "../../../../models/chat.model";
+import {
+  iChat,
+  iMsgBody,
+  iChatMsgs,
+  iChatReqBody,
+} from "../../../../models/chat.imodel";
+import {
+  getMsgsId,
+  cacheMsgs,
+  getDocMsgs,
+  getCacheMsgs,
+  checkChatInfo,
+  validateChatReqBody,
+} from "../../../../routes/chat/chat.controller";
 
 describe("Chat Route Sub Functions", () => {
   const OLD_ENV = process.env;
@@ -185,11 +185,10 @@ describe("Chat Route Sub Functions", () => {
     });
 
     test("if fx would return an empty array after just creating msgs doc", async () => {
-      const sMsgs = TestUtil.createSampleMsgs(65);
       const chatMsgs: iChatMsgs = {
         str_id: chatObj.msgs_id,
         list: [],
-        count: sMsgs.length,
+        count: 0,
       };
       await ChatMessages.create(chatMsgs);
 
@@ -233,7 +232,7 @@ describe("Chat Route Sub Functions", () => {
   });
 
   describe("Cache Chat Msgs Fx", () => {
-    // chat cache index is existing from tests earlier
+    // empty chat cache index is existing from tests earlier
     const cMsgs = TestUtil.createSampleMsgs(35);
 
     test("if fx would return void after sending empty array", async () => {

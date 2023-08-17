@@ -250,6 +250,7 @@ export async function getDocRels(
       { $project: { list: { $slice: ["$list", skip, limit] } } },
     ]);
 
+    if (!userRelations.length) return [];
     return userRelations[0].list as Array<iRelation>;
   } catch (err) {
     return newApiError(

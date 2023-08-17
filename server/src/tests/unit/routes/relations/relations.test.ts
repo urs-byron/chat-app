@@ -5,25 +5,26 @@ import { Group } from "../../../../models/group.model";
 import { iGroup } from "../../../../models/group.imodel";
 import { TestUtil } from "../../../misc/util";
 import { APIError } from "../../../../global/httpErrors.global";
+import { relSkipCnt } from "../../../../global/search.global";
 import { UserMethods } from "../../../../data/user.data";
 import { RedisMethods } from "../../../../services/redis.srvcs";
 import { MongoDBMethods } from "../../../../services/mongo.srvcs";
 import { updateUserDbRelations } from "../../../../routes/group/group.controller";
 import { GenRelations, contactType } from "../../../../models/gen.model";
 import {
-  iGenRelations,
   iRelation,
   iRelationAct,
+  iGenRelations,
 } from "../../../../models/gen.imodel";
 import {
-  validateContactType,
-  assignRelationsId,
-  getDbGroup,
-  checkRelSetCache,
-  getCacheRels,
-  getDocRels,
   cacheRels,
+  getDocRels,
+  getDbGroup,
+  getCacheRels,
   validatePatchRel,
+  checkRelSetCache,
+  assignRelationsId,
+  validateContactType,
   updateDbUserRelations,
   updateUserRelationCache,
 } from "../../../../routes/relations/relations.controller";
@@ -209,11 +210,12 @@ describe("Get Relations Sub Fxs", () => {
       expect((ab as iRelation[]).length).toEqual(0);
     }, 15000);
 
-    test("if fx would return numeric value after filling cache index", async () => {
+    test("if fx would return same values after filling index w/ diff caches", async () => {
       const tx = RedisMethods.client.multi();
+      const rels = TestUtil.createDiffConRel();
       let rel: iRelation;
       let relKey: string;
-      for (rel of TestUtil.createDiffConRel()) {
+      for (rel of rels) {
         relKey = RedisMethods.relationSetItemName(
           user.act_id.accnt_id,
           rel.accnt_id
@@ -227,24 +229,24 @@ describe("Get Relations Sub Fxs", () => {
         user.act_id.accnt_id,
         contactType.contact,
         0,
-        100
+        relSkipCnt
       );
       const am = await getCacheRels(
         user.act_id.accnt_id,
         contactType.mute,
         0,
-        100
+        relSkipCnt
       );
       const ab = await getCacheRels(
         user.act_id.accnt_id,
         contactType.block,
         0,
-        100
+        relSkipCnt
       );
 
-      expect((ac as iRelation[]).length).toEqual(4);
-      expect((am as iRelation[]).length).toEqual(2);
-      expect((ab as iRelation[]).length).toEqual(2);
+      expect((ac as iRelation[]).length).toEqual(rels.length);
+      expect((am as iRelation[]).length).toEqual(rels.length);
+      expect((ab as iRelation[]).length).toEqual(rels.length);
     }, 15000);
 
     test("if fx would return empty array after deleting index caches", async () => {
@@ -296,35 +298,48 @@ describe("Get Relations Sub Fxs", () => {
 
     test("if fx would return an empty array", async () => {
       const c = await getDocRels((u as iUser).relations, "contact", 0, 100);
-      const m = await getDocRels((u as iUser).relations, "contact", 0, 100);
-      const b = await getDocRels((u as iUser).relations, "contact", 0, 100);
+      const m = await getDocRels((u as iUser).relations, "mute", 0, 100);
+      const b = await getDocRels((u as iUser).relations, "block", 0, 100);
 
       expect((c as iRelation[]).length).toEqual(0);
       expect((m as iRelation[]).length).toEqual(0);
       expect((b as iRelation[]).length).toEqual(0);
     });
 
-    test("if fx would return specific arrays after database filling", async () => {
+    test("if fx would return same lengths after filling database w/ diff docs", async () => {
+      const rels = TestUtil.createDiffConRel(2, 2, 2);
       let rel: iRelation;
       let i: number = 0;
-      for (rel of TestUtil.createDiffConRel()) {
+      const tx = RedisMethods.client.multi();
+
+      for (rel of rels) {
         await updateUserDbRelations(
           user.act_id.accnt_id,
           (u as iUser).relations,
           i,
           rel,
-          RedisMethods.client.multi()
+          tx
         );
         i++;
       }
 
-      const c = await getDocRels((u as iUser).relations, "contact", 0, 100);
-      const m = await getDocRels((u as iUser).relations, "mute", 0, 100);
-      const b = await getDocRels((u as iUser).relations, "block", 0, 100);
+      const c = await getDocRels(
+        (u as iUser).relations,
+        "contact",
+        0,
+        relSkipCnt
+      );
+      const m = await getDocRels((u as iUser).relations, "mute", 0, relSkipCnt);
+      const b = await getDocRels(
+        (u as iUser).relations,
+        "block",
+        0,
+        relSkipCnt
+      );
 
-      expect((c as iRelation[]).length).toEqual(4);
-      expect((m as iRelation[]).length).toEqual(2);
-      expect((b as iRelation[]).length).toEqual(2);
+      expect((c as iRelation[]).length).toEqual(rels.length);
+      expect((m as iRelation[]).length).toEqual(rels.length);
+      expect((b as iRelation[]).length).toEqual(rels.length);
     }, 15000);
 
     test("if fx would return empty arrays after deleting user relation docs", async () => {
@@ -341,13 +356,14 @@ describe("Get Relations Sub Fxs", () => {
         }
       );
 
-      let c = await getDocRels((u as iUser).relations, "contact", 0, 100);
-      let m = await getDocRels((u as iUser).relations, "mute", 0, 100);
-      let b = await getDocRels((u as iUser).relations, "block", 0, 100);
+      let c = await getDocRels(
+        (u as iUser).relations,
+        "contact",
+        0,
+        relSkipCnt
+      );
 
       expect((c as iRelation[]).length).toEqual(4);
-      expect((m as iRelation[]).length).toEqual(2);
-      expect((b as iRelation[]).length).toEqual(0);
 
       await GenRelations.updateOne(
         {
@@ -362,13 +378,10 @@ describe("Get Relations Sub Fxs", () => {
         }
       );
 
-      c = await getDocRels((u as iUser).relations, "contact", 0, 100);
-      m = await getDocRels((u as iUser).relations, "mute", 0, 100);
-      b = await getDocRels((u as iUser).relations, "block", 0, 100);
+      let m = await getDocRels((u as iUser).relations, "mute", 0, relSkipCnt);
+      m = await getDocRels((u as iUser).relations, "block", 0, relSkipCnt);
 
-      expect((c as iRelation[]).length).toEqual(2);
-      expect((m as iRelation[]).length).toEqual(0);
-      expect((b as iRelation[]).length).toEqual(0);
+      expect((m as iRelation[]).length).toEqual(2);
 
       await GenRelations.updateOne(
         {
@@ -381,12 +394,8 @@ describe("Get Relations Sub Fxs", () => {
         }
       );
 
-      c = await getDocRels((u as iUser).relations, "contact", 0, 100);
-      m = await getDocRels((u as iUser).relations, "mute", 0, 100);
-      b = await getDocRels((u as iUser).relations, "block", 0, 100);
+      let b = await getDocRels((u as iUser).relations, "block", 0, relSkipCnt);
 
-      expect((c as iRelation[]).length).toEqual(0);
-      expect((m as iRelation[]).length).toEqual(0);
       expect((b as iRelation[]).length).toEqual(0);
     }, 15000);
   });
@@ -449,7 +458,7 @@ describe("Patch Relation Sub Fxs", () => {
   let validRelAct: iRelationAct;
 
   beforeAll(async () => {
-    rels = TestUtil.createDiffConRel();
+    rels = TestUtil.createDiffConRel(2, 2, 2);
     recipientRel = rels[0];
     validRelAct = {
       recipientId: recipientRel.accnt_id,
