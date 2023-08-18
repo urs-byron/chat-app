@@ -20,7 +20,7 @@ export class RequestEvents {
     requestItem = GenUtil.requestStrIntToBool(requestItem);
 
     if (requestItem.isGroup) return;
-
+    console.log(requestItem);
     UserComponent.createRequest(
       requestItem,
       type === 0
@@ -43,6 +43,7 @@ export class RequestEvents {
       Validate.contactItem(approveData.relItem).isValid
     ) {
       PeerComponent.updatePeerListHTML(approveData.relItem);
+      console.log(approveData);
     }
   };
 

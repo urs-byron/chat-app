@@ -1,6 +1,6 @@
 import { Group } from "../models/group.model";
 import { Socket } from "socket.io";
-import { iGroupDoc } from "../models/group.imodel";
+import { iGroup, iGroupDoc } from "../models/group.imodel";
 import { ChatMethods } from "../data/chat.data";
 import { GeneralMethods } from "../data/misc.data";
 import { User, chatType } from "../models/user.model";
@@ -122,7 +122,14 @@ export const postRequest = async (
     if (newReqs instanceof APIError || newReqs instanceof Error)
       return soc.emit(socket.serverErrRev, newReqs);
 
-    await postRequestR(receiverId, soc, clients, newReqs);
+    await postRequestR(
+      requestType,
+      senderId,
+      receiverId,
+      soc,
+      clients,
+      newReqs
+    );
     return;
   }
 
@@ -210,6 +217,8 @@ export const postRequest = async (
 
   // EMIT RESPONDING SOCKET EV
   const r = await postRequestR(
+    requestType,
+    senderId,
     receiverId,
     soc,
     clients,
@@ -567,6 +576,8 @@ export async function getNewCacheRequests(
 }
 
 export async function postRequestR(
+  type: 1 | 2 | 3,
+  senderId: string,
   receiverId: string,
   soc: Socket,
   clients: Map<string, Socket>,
@@ -574,36 +585,50 @@ export async function postRequestR(
 ): Promise<void | APIError | Error> {
   let receiverSocketId: string;
 
-  try {
-    receiverSocketId = (await redis.client.get(
-      redis.userSessionName(receiverId)
-    )) as string;
-
-    // --- return socket.emit
-    // arg1
-    // iRequest
-    // arg2
-    // 0 --- outgoing
-    // 1 --- incoming
-
-    // EMIT REPLY EVENT TO receiverId
-  } catch (err) {
-    return newApiError(
-      500,
-      "server is unable to search for user session caches",
-      err
-    );
-  }
-
-  if (receiverSocketId && clients.get(receiverSocketId)) {
-    clients
-      .get(receiverSocketId)!
-      .emit(socket.postRequestRev, newReqs.newInReq, 1);
-  }
+  let groupChatId!: string | APIError | Error;
+  if (type === 2 || type === 3)
+    groupChatId = await getGroupChatId(type === 2 ? receiverId : senderId);
+  if (groupChatId instanceof APIError || groupChatId instanceof Error)
+    return groupChatId;
 
   // EMIT REPLY EVENT TO senderId
-  if (clients.get(soc.id)) {
-    clients.get(soc.id)!.emit(socket.postRequestRev, newReqs.newOutReq, 0);
+
+  if (type !== 3) {
+    if (clients.get(soc.id)) {
+      soc.emit(socket.postRequestRev, newReqs.newOutReq, 0);
+    }
+  } else {
+    soc.to(groupChatId).emit(socket.postRequestRev, newReqs.newOutReq, 0);
+  }
+
+  // EMIT REPLY EVENT TO receiverId
+  if (type !== 2) {
+    try {
+      receiverSocketId = (await redis.client.get(
+        redis.userSessionName(receiverId)
+      )) as string;
+
+      // --- return socket.emit
+      // arg1
+      // iRequest
+      // arg2
+      // 0 --- outgoing
+      // 1 --- incoming
+    } catch (err) {
+      return newApiError(
+        500,
+        "server is unable to search for user session caches",
+        err
+      );
+    }
+
+    if (receiverSocketId && clients.get(receiverSocketId)) {
+      clients
+        .get(receiverSocketId)!
+        .emit(socket.postRequestRev, newReqs.newInReq, 1);
+    }
+  } else {
+    soc.to(groupChatId).emit(socket.postRequestRev, newReqs.newInReq, 1);
   }
 }
 
@@ -778,6 +803,7 @@ export const patchRequest = async (
 
   // ADD SOCKET EVENT - create request item to client browsers if active
   const socR = await patchRequestR(
+    type,
     action,
     senderId,
     receiverId,
@@ -1104,7 +1130,25 @@ export async function executeCacheTransaction(
   }
 }
 
+export async function getGroupChatId(
+  groupId: string
+): Promise<string | APIError | Error> {
+  try {
+    const g = await redis.client.ft.search(
+      redis.groupIdxStr,
+      `@grp_id:(${groupId})`
+    );
+
+    if (!g.documents.length)
+      return newApiError(404, "server found no matching group id");
+    return (g.documents[0] as unknown as iGroup).chat_id;
+  } catch (err) {
+    return newApiError(500, "server is unable to retrieve group cache", err);
+  }
+}
+
 export async function patchRequestR(
+  type: 1 | 2 | 3,
   action: iGenRequestActions,
   senderId: string,
   receiverId: string,
@@ -1128,21 +1172,39 @@ export async function patchRequestR(
     const senderType: 1 | 0 = action === "cancel" ? 0 : 1;
     const receiverType: 1 | 0 = action === "cancel" ? 1 : 0;
 
-    if (clients.get(soc.id)) {
-      clients
-        .get(soc.id)!
-        .emit(socket.patchRequestRev, receiverId, senderType, {
-          newStatus: newStatus,
-          relItem: newUserRelation,
-        });
+    let groupChatId!: string | APIError | Error;
+    if (type === 2 || type === 3) {
+      groupChatId = await getGroupChatId(type === 2 ? receiverId : senderId);
     }
-    if (receiverSocketId && clients.get(receiverSocketId)) {
-      clients
-        .get(receiverSocketId)!
-        .emit(socket.patchRequestRev, senderId, receiverType, {
-          newStatus: newStatus,
-          relItem: newRecipientRelation,
-        });
+    if (groupChatId instanceof APIError || groupChatId instanceof Error)
+      return groupChatId;
+
+    if (type !== 3) {
+      soc.emit(socket.patchRequestRev, receiverId, senderType, {
+        newStatus: newStatus,
+        relItem: newUserRelation,
+      });
+    } else {
+      soc.to(groupChatId).emit(socket.patchRequestRev, receiverId, senderType, {
+        newStatus: newStatus,
+        relItem: newUserRelation,
+      });
+    }
+
+    if (type !== 2) {
+      if (receiverSocketId && clients.get(receiverSocketId)) {
+        clients
+          .get(receiverSocketId)!
+          .emit(socket.patchRequestRev, senderId, receiverType, {
+            newStatus: newStatus,
+            relItem: newRecipientRelation,
+          });
+      }
+    } else {
+      soc.to(groupChatId).emit(socket.patchRequestRev, senderId, receiverType, {
+        newStatus: newStatus,
+        relItem: newRecipientRelation,
+      });
     }
   } catch (err) {
     return newApiError(

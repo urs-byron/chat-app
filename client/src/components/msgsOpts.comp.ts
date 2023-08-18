@@ -318,8 +318,8 @@ export class MessagesOptionsComponent extends Component<
     const iBlock = document.createElement("i");
     iBlock.classList.add("fa-solid", "fa-user-slash");
 
-    itemActions.appendChild(iMute);
-    itemActions.appendChild(iBlock);
+    // itemActions.appendChild(iMute);
+    // itemActions.appendChild(iBlock);
     itemActions.appendChild(iAdmin);
 
     itemWrap.appendChild(itemName);

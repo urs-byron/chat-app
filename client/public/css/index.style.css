@@ -613,7 +613,8 @@ a {
 }
 
 .chat-msg-opts-member-item > p:last-child {
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr;
+  /* grid-template-columns: 1fr 1fr 1fr; */
   text-align: center;
 }
 .chat-msg-opts-incoming-item > p:last-child i,
