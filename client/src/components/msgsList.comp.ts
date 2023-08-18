@@ -239,19 +239,19 @@ export class MessagesListComponent extends Component<
       "input"
     )! as HTMLInputElement;
 
-    const sMsg: iMsgBody = {
+    const msgBody: iMsgBody = {
       msg: inputHMTL.value,
       msgId: crypto.randomUUID().replace(/-/g, ""),
+      chatId: this.chatId,
       senderName: "You",
       senderId: this.userId,
-      timeReceived: Date.now(),
+      timeReceived: 0,
     };
 
     SocketMethods.socket!.emit(
       SocketMethods.postMessageEv,
-      sMsg,
+      msgBody,
       this.peerId,
-      this.chatId,
       this.type,
       (res: iMsgBody) => {
         if ("msg" in res) {
@@ -263,7 +263,7 @@ export class MessagesListComponent extends Component<
           );
 
           PeerComponent.updatePeerListHTML(
-            { accnt_id: this.peerId } as iRelation,
+            { accnt_id: this.peerId, chat_id: res.chatId } as iRelation,
             res
           );
 
@@ -434,6 +434,9 @@ export class MessagesListComponent extends Component<
     type: 0 | 1,
     isFetched: boolean = false
   ) => {
+    if (msg.chatId !== MessagesListComponent.chatMsgsListWrap.dataset.chatId)
+      return;
+
     const msgWrapWrap = document.createElement("div");
     const msgWrap = document.createElement("div");
 

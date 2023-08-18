@@ -631,22 +631,22 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
     };
   }
   static readonly updatePeerListHTML = (rel: iRelation, msg?: iMsgBody) => {
-    const vRelInfo = this.searchPeerInfo(rel.accnt_id);
+    const vRelInfo = this.searchPeerInfo(rel.chat_id);
     let vRelHTML: HTMLDivElement;
     let withinList: boolean;
 
-    if (vRelInfo && "accnt_id" in vRelInfo) {
+    if (vRelInfo && "chat_id" in vRelInfo) {
       withinList = true;
       // if rel is within peerInfo, fetch present representing HTML
-      vRelHTML = this.searchPeerHTML(rel.accnt_id)!;
+      vRelHTML = this.searchPeerHTML(rel.chat_id)!;
 
       // if rel not atop peerList, remove rel from peerList & peerInfo
       if (this.chatPeerRelationsHTML[0] !== vRelHTML) {
         this.chatPeerRelationsHTML = this.chatPeerRelationsHTML.filter(
-          (html: HTMLDivElement) => html.dataset.userId !== rel.accnt_id
+          (html: HTMLDivElement) => html.dataset.chatId !== rel.chat_id
         );
         this.chatPeerRelationsInfo = this.chatPeerRelationsInfo.filter(
-          (relInfo: iRelation) => relInfo.accnt_id !== rel.accnt_id
+          (relInfo: iRelation) => relInfo.chat_id !== rel.chat_id
         );
       }
     } else {
@@ -675,7 +675,7 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
   };
   static readonly searchPeerInfo = (id: string): iRelation | undefined => {
     const t: iRelation | undefined = PeerComponent.chatPeerRelationsInfo.find(
-      (rel: iRelation) => rel.accnt_id === id
+      (rel: iRelation) => rel.chat_id === id
     );
 
     return t;
@@ -683,7 +683,7 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
   static readonly searchPeerHTML = (id: string): HTMLDivElement | void => {
     let html;
     this.chatPeerRelationsHTML.forEach((h: HTMLDivElement) => {
-      if (h.dataset.userId === id) {
+      if (h.dataset.chatId === id) {
         html = h;
       }
     });

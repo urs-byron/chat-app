@@ -129,7 +129,8 @@ export class MessagesOptionsComponent extends Component<
     }
 
     // SOCKET REQUEST
-    SocketMethods.socket?.emit(SocketMethods.patchRequestEv, reqBody, action);
+    if (target.classList.contains("request-action")) console.log(action);
+    // SocketMethods.socket?.emit(SocketMethods.patchRequestEv, reqBody, action);
   };
 
   // --------------------------

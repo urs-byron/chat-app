@@ -18,7 +18,7 @@ export class MessageEvent {
     );
 
     PeerComponent.updatePeerListHTML(
-      { accnt_id: data.senderId } as iRelation,
+      { accnt_id: data.senderId, chat_id: data.chatId } as iRelation,
       data
     );
 
