@@ -656,7 +656,7 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
     }
 
     // if called from new msg, add message
-    if (msg !== null) {
+    if (msg !== undefined) {
       const p = vRelHTML.querySelector("h3 + p")!;
       p.textContent =
         GenUtil.milliToTime(msg?.timeReceived!) + " - " + msg?.msg!;

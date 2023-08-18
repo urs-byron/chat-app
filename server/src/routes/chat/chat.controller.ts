@@ -2,7 +2,7 @@ import { GeneralUtil } from "../../util/misc.util";
 import { iChatMsgs, iChatReqBody } from "../../models/chat.imodel";
 import { AggregateSteps } from "redis";
 import { RequestHandler } from "express";
-import { chatMsgSkipCnt } from "../../global/search.global";
+import { chatMsgSkipCnt, relSkipCnt } from "../../global/search.global";
 import { ValidateMethods } from "../../util/validate.util";
 import { Chat, ChatMessages } from "../../models/chat.model";
 import { RedisMethods as redis } from "../../services/redis.srvcs";
@@ -126,6 +126,7 @@ export async function checkChatInfo(
 ): Promise<number | APIError | Error> {
   try {
     const info = await redis.client.ft.info(redis.chatSetName(chatId));
+
     return parseInt(info.numDocs);
   } catch (err) {
     return newApiError(
@@ -144,7 +145,14 @@ export async function getCacheMsgs(
   try {
     const msgs = (
       await redis.client.ft.aggregate(redis.chatSetName(chatId), "*", {
-        LOAD: ["@msg", "@msgId", "@senderName", "@senderId", "@timeReceived"],
+        LOAD: [
+          "@msg",
+          "@msgId",
+          "@chatId",
+          "@senderName",
+          "@senderId",
+          "@timeReceived",
+        ],
         STEPS: [
           {
             type: AggregateSteps.SORTBY,

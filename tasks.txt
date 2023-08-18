@@ -39,16 +39,7 @@ user | group search skip-next logic
 └ ┴ ┘
 
 ///// URGENT
---- Chat Rules will no longer be implemented 
---- FIX socket CB
 
-POST membership request
-
-POST message Reply logic
---- put related peer list item to top
---- check if current MessageListComp is target peer
------- true: create new message item
------- false: return
 
 ///// CURRENT TASKS
 
@@ -61,3 +52,5 @@ SERVER
 --- fix redis.discard use
 --- object bool validations
 --- e2e testing
+
+optional parameters checker

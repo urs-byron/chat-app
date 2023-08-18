@@ -48,17 +48,20 @@ export class MessagesListComponent extends Component<
     private readonly peerName: string,
     private readonly chatId: string,
     private readonly availability: boolean,
-    private readonly type: iChatType
+    private readonly type: iChatType,
+    private readonly fromPeer: boolean
   ) {
     super(".chat-msgs", "msgs-list-temp", "afterbegin");
 
     (async () => {
-      const n = MessagesListComponent.getMsgListInfoCount(this.chatId);
-      if (!n) await this.getMessages();
-      else {
-        this.msgsListCnt = n;
-        const m = Math.floor(n / this.skipCnt);
-        this.skip = m;
+      if (PeerComponent.searchPeerInfo(this.chatId) !== undefined) {
+        const n = MessagesListComponent.getMsgListInfoCount(this.chatId);
+        if (!n) await this.getMessages();
+        else {
+          this.msgsListCnt = n;
+          const m = Math.floor(n / this.skipCnt);
+          this.skip = m;
+        }
       }
 
       this.configureComponent();
@@ -434,8 +437,10 @@ export class MessagesListComponent extends Component<
     type: 0 | 1,
     isFetched: boolean = false
   ) => {
-    if (msg.chatId !== MessagesListComponent.chatMsgsListWrap.dataset.chatId)
+    if (msg.chatId !== MessagesListComponent.chatMsgsListWrap.dataset.chatId) {
+      console.log(msg.chatId);
       return;
+    }
 
     const msgWrapWrap = document.createElement("div");
     const msgWrap = document.createElement("div");
@@ -519,7 +524,8 @@ export class MessagesListComponent extends Component<
           peerName,
           chatId,
           availability,
-          type
+          type,
+          fromPeer
         );
         this.chatMsgsList = document.querySelector(
           ".chat-msg-list"

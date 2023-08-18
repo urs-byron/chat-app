@@ -353,7 +353,6 @@ export class MessagesOptionsComponent extends Component<
     type: iChatType,
     availability: boolean,
     fromPeer: boolean,
-
     deleteInstance: boolean
   ): MessagesOptionsComponent | null => {
     if (!deleteInstance) {
