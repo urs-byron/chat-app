@@ -12,6 +12,7 @@ import {
 const chatMsgSchema = new Schema<iMsgBody>({
   msg: { type: String, require: true },
   msgId: { type: String, require: true, index: true },
+  chatId: { type: String, require: true },
   senderName: { type: String, require: true, index: true },
   senderId: { type: String, require: true },
   timeReceived: { type: Number, require: true, index: true },

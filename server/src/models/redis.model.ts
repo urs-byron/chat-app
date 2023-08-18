@@ -198,6 +198,10 @@ export const chatSetSchema: RediSearchSchema = {
     SORTABLE: true,
     AS: "msgId",
   },
+  "$.chatId": {
+    type: SchemaFieldTypes.TEXT,
+    AS: "chatId",
+  },
   "$.senderName": {
     type: SchemaFieldTypes.TEXT,
     AS: "senderName",

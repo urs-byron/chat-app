@@ -71,6 +71,7 @@ export class TestUtil {
       chatArr.push({
         msg: `sampleChatId${index}`,
         msgId: `sampleMsgsId${index}`,
+        chatId: `sampleChatId${index}`,
         senderId: `sampleSenderId${index}`,
         senderName: `sampleSenderName${index}`,
         timeReceived: index,

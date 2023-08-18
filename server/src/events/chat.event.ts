@@ -12,13 +12,16 @@ import { executeCacheTransaction } from "./request.event";
 export const postMessage = async (
   data: iMsgBody,
   recipientId: string,
-  chatId: string,
   type: iChatType,
   soc: Socket
-) => {
+): Promise<iMsgBody | APIError | Error> => {
+  const { chatId } = data;
   const user = (soc.request as any).user as iUserDoc;
   data.senderName = user.act_name;
   data.timeReceived = Date.now();
+
+  Object.freeze(data);
+
   const tx = redis.client.multi();
 
   // VALIDATION
@@ -157,7 +160,7 @@ export function validatePostMessage(
   recipientId: string,
   chatId: string
 ): APIError | Error | void {
-  const v = ValidateMethods.newMessage(data, recipientId, chatId);
+  const v = ValidateMethods.newMessage(data, recipientId);
   if (!v.isValid)
     return newApiError(400, "client sent invalid message data", v.error);
 }

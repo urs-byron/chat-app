@@ -339,11 +339,7 @@ export class ValidateMethods {
 
     return this.setValidity(v);
   }
-  static newMessage(
-    newMsg: iMsgBody,
-    recipientId: string,
-    chatId: string
-  ): iValidityType {
+  static newMessage(newMsg: iMsgBody, recipientId: string): iValidityType {
     const validity = [
       typeof newMsg.msg === "string" && newMsg.msg.length > 0
         ? null
@@ -360,12 +356,12 @@ export class ValidateMethods {
       typeof newMsg.timeReceived === "number"
         ? null
         : "Message Time is required",
-      typeof chatId === "string" && chatId.length > 0
+      typeof newMsg.chatId === "string" && newMsg.chatId.length > 0
         ? null
         : "Message ID is required",
       newMsg.senderId !== recipientId &&
-      recipientId !== chatId &&
-      chatId !== newMsg.senderId
+      recipientId !== newMsg.chatId &&
+      newMsg.chatId !== newMsg.senderId
         ? null
         : "Any of the sender, recipient, and chat IDs cannot be the same",
     ];

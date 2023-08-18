@@ -145,20 +145,14 @@ export class SocketMethods {
   static readonly socketMessageEv: (soc: Socket) => void = (soc) => {
     soc.on(
       SocketMethods.postMessageEv,
-      async (
-        data: iMsgBody,
-        recipientId: string,
-        chatId: string,
-        type: iChatType,
-        cb
-      ) => {
-        const res = await postMessage(data, recipientId, chatId, type, soc);
+      async (data: iMsgBody, recipientId: string, type: iChatType, cb) => {
+        const res = await postMessage(data, recipientId, type, soc);
 
         cb(res);
 
         if (res instanceof APIError || res instanceof Error) return;
 
-        soc.to(chatId).emit(SocketMethods.postMessageRev, res);
+        soc.to(data.chatId).emit(SocketMethods.postMessageRev, res);
       }
     );
   };
