@@ -22,6 +22,7 @@ export class ServerMethods {
     SocketMethods.init(server);
     await MongoDBMethods.connect();
     await RedisMethods.connect();
+
     // await MongoDBMethods.flush();
     // await RedisMethods.client.flushAll();
 

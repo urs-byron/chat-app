@@ -794,6 +794,15 @@ export const patchRequest = async (
     );
     if (upDb instanceof APIError || upDb instanceof Error)
       return soc.emit(socket.serverErrRev, upDb);
+  } else {
+    newUserRelation = {
+      accnt_id: receiverId,
+      type: type !== 3 ? "user" : "group",
+    } as iRelation;
+    newRecipientRelation = {
+      accnt_id: senderId,
+      type: type !== 2 ? "user" : "group",
+    } as iRelation;
   }
 
   // EXECUTE CACHE TRANSACTIONS

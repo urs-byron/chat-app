@@ -29,6 +29,7 @@ export class SocketMethods {
   static readonly patchRequestRev = "patchRequestR";
   static readonly postMessageEv = "postMessage";
   static readonly postMessageRev = "postMessageR";
+  static readonly joinRoomEv = "joinRoom";
   static readonly joinRoomsEv = "joinRooms";
   static readonly serverErrRev = "serverErrR";
 
@@ -116,6 +117,10 @@ export class SocketMethods {
 
   // --- JOIN ROOMS
   static readonly connectSocketToRooms: (soc: Socket) => void = (soc) => {
+    soc.on(SocketMethods.joinRoomEv, (data: string, cb) => {
+      soc.join(data);
+      cb("connected to room");
+    });
     soc.on(SocketMethods.joinRoomsEv, (data: string[], cb) => {
       let rel: string;
       for (rel of data) soc.join(rel);

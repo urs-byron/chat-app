@@ -1,18 +1,13 @@
 import { tryCatch } from "../util/asyncWrap.util";
 import { Validate } from "../util/validation.util";
-import { Component } from "./base.comp";
 import { iRelation } from "../models/user.model";
 import { iNewGrpBody } from "../models/group.model";
-import { iChatType, iRequestBody } from "../models/gen.model";
+import { SocketMethods } from "../util/socket.util";
 import { iHttpResponse } from "../models/http.model";
 import { ErrorComponent as error } from "./error.comp";
-import {
-  httpGetGroups,
-  httpPostGroup,
-  httpPostUserRequest,
-} from "../hooks/requests.hook";
-import { SocketMethods } from "../util/socket.util";
-import { MessagesListComponent } from "./msgsList.comp";
+import { iChatType, iRequestBody } from "../models/gen.model";
+import { httpGetGroups, httpPostGroup } from "../hooks/requests.hook";
+import { PeerComponent } from "./peer.comp";
 
 export class GroupComponent {
   static instance: GroupComponent | null;
@@ -140,8 +135,8 @@ export class GroupComponent {
     if (!httpValid) return;
 
     // HTTP REQUEST (POST MEMBERSHIP)
-    const grp_id: string = (response.data.data as { group_id: string })
-      .group_id;
+    const grpRel = response.data.data as iRelation;
+    const grp_id: string = grpRel.accnt_id;
     const reqBody: iRequestBody = this.createRequestBody(
       this.chatMsgs.dataset.userId as string,
       grp_id
@@ -149,13 +144,25 @@ export class GroupComponent {
 
     SocketMethods.socket?.emit(SocketMethods.postRequestEv, reqBody);
 
-    // VALIDATION: HTTP RESPONSE (POST MEMBERSHIP)
-    httpValid = Validate.httpRes(
-      response,
-      `server is unable to process request for user membership`,
-      `server responded with an error upon client's request for user membership`
+    // UPDATE HTML PEER LIST
+    PeerComponent.updatePeerListHTML(grpRel);
+
+    // CONNECT USER TO GROUP ROOM
+    SocketMethods.socket?.emit(
+      SocketMethods.joinRoomEv,
+      grpRel.chat_id,
+      (res: string) => {
+        console.log(res);
+      }
     );
-    if (!httpValid) return;
+
+    // VALIDATION: HTTP RESPONSE (POST MEMBERSHIP)
+    // httpValid = Validate.httpRes(
+    //   response,
+    //   `server is unable to process request for user membership`,
+    //   `server responded with an error upon client's request for user membership`
+    // );
+    // if (!httpValid) return;
 
     // FINAL PROCESS
     this.groupsInput.value = "";

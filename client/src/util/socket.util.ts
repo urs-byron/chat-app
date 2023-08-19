@@ -16,6 +16,7 @@ export class SocketMethods {
   static readonly patchRelationRev = "patchRelationR";
   static readonly postMessageEv = "postMessage";
   static readonly postMessageRev = "postMessageR";
+  static readonly joinRoomEv = "joinRoom";
   static readonly joinRoomsEv = "joinRooms";
 
   static readonly serverErrRev = "serverErrR";

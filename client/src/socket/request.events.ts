@@ -3,6 +3,7 @@ import { Validate } from "../util/validation.util";
 import { UserComponent } from "../components/user.comp";
 import { PeerComponent } from "../components/peer.comp";
 import { iRequest, iRequestApproveData } from "../models/user.model";
+import { SocketMethods } from "../util/socket.util";
 
 export class RequestEvents {
   private static inst: RequestEvents;
@@ -19,8 +20,6 @@ export class RequestEvents {
     // OPTION FOR ADDING REQUEST VIA SOCKET IS NOT VIABLE SINCE SOCKET ID ARE FROM USER ID, CONNECTED UPON LOGGING IN, GROUP SOCKET IDS, MUST FIRST BE ESTABLISHED
     requestItem = GenUtil.requestStrIntToBool(requestItem);
 
-    if (requestItem.isGroup) return;
-    console.log(requestItem);
     UserComponent.createRequest(
       requestItem,
       type === 0
@@ -38,13 +37,24 @@ export class RequestEvents {
     if (approveData.relItem.type === "user")
       UserComponent.deleteRequest(requestItemId, type);
 
+    console.log(type);
+
     if (
       Validate.approveData(approveData).isValid &&
       Validate.contactItem(approveData.relItem).isValid
     ) {
       PeerComponent.updatePeerListHTML(approveData.relItem);
-      console.log(approveData);
+      SocketMethods.socket?.emit(
+        SocketMethods.joinRoomEv,
+        approveData.relItem.chat_id,
+        (res: string) => {
+          console.log(res);
+        }
+      );
     }
+
+    console.log(Validate.approveData(approveData).isValid);
+    console.log(Validate.contactItem(approveData.relItem).isValid);
   };
 
   static getInst = (): RequestEvents => {

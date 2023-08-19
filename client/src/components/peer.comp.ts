@@ -56,8 +56,9 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
         this.configureComponent();
         this.renderComponent();
         this.connectToSocketRooms();
-        // await this.fetchTopMsgs();
+        await this.fetchTopMsgs();
       } catch (err) {
+        console.log(err);
         error.showComp(
           "ERROR: client is unable to request user relations",
           err
@@ -439,6 +440,7 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
     try {
       response = await tryCatch(httpGetUserRelations, relBody);
     } catch (err) {
+      console.log(err);
       return error.showComp(
         "ERROR: client is unable to request user relations",
         err
@@ -712,7 +714,14 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
         `client responded with an error for upon request for top chat message`
       );
 
-      // if (!httpValid) return;
+      if (!httpValid) return;
+
+      if (
+        response.data.data === undefined ||
+        response.data.data === null ||
+        !("msg" in response.data.data)
+      )
+        return;
 
       h.querySelector("p")!.textContent = (response.data.data as iMsgBody).msg;
     }
