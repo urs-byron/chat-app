@@ -41,9 +41,6 @@ export class RequestEvents {
     }
 
     if (reqType !== 1) {
-      console.log(reqType);
-      console.log(type);
-
       if (!(reqType === 2 && type === 0))
         MessagesOptionsComponent.createRequest(
           requestItem,

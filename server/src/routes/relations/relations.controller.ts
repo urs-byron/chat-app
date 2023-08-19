@@ -1,6 +1,6 @@
 import { iUser } from "../../models/user.imodel";
 import { Group } from "../../models/group.model";
-import { relSkipCnt } from "../../global/search.global";
+import { maxPeers, relSkipCnt } from "../../global/search.global";
 import { iChatType } from "../../models/chat.imodel";
 import { iGroupDoc } from "../../models/group.imodel";
 import { GeneralUtil } from "../../util/misc.util";
@@ -201,7 +201,7 @@ export async function getCacheRels(
             type: AggregateSteps.SORTBY,
             BY: { BY: "@bump", DIRECTION: "DESC" },
           },
-          { type: AggregateSteps.LIMIT, from: skip, size: limit },
+          { type: AggregateSteps.LIMIT, from: 0, size: maxPeers - 1 },
         ],
       }
     );
@@ -247,7 +247,7 @@ export async function getDocRels(
       { $sort: { "relations.list.bump": -1 } },
       { $group: { list: { $push: "$relations.list" }, _id: -1 } },
       { $project: { list: 1 } },
-      { $project: { list: { $slice: ["$list", skip, limit] } } },
+      { $project: { list: { $slice: ["$list", 1, maxPeers] } } },
     ]);
 
     if (!userRelations.length) return [];

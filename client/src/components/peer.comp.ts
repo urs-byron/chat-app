@@ -29,8 +29,6 @@ import {
 export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
   static instance: PeerComponent | null;
 
-  private skip: number = 0;
-
   private chatUserWrap!: HTMLDivElement;
   private chatUserToggle!: HTMLDivElement;
   private chatPeerHeadings!: HTMLDivElement;
@@ -44,6 +42,9 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
   static chatPeerRelationsInfo: Array<iRelation> = [];
   static chatPeerRelationsHTML: Array<HTMLDivElement> = [];
 
+  private skip: number = 0;
+  private skipConst: number = 15;
+
   // FOREIGN COMPONENT ELEMENT
   private chatApp!: HTMLDivElement;
 
@@ -54,11 +55,8 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
       try {
         await this.getUserContacts();
         this.configureComponent();
-        this.renderComponent();
-        this.connectToSocketRooms();
-        await this.fetchTopMsgs();
+        await this.renderComponent();
       } catch (err) {
-        console.log(err);
         error.showComp(
           "ERROR: client is unable to request user relations",
           err
@@ -117,14 +115,18 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
 
     document.addEventListener("click", this.undoEventClickHandler);
     document.addEventListener("keypress", this.undoEventKeyHandler);
+
+    this.connectToSocketRooms();
   }
-  renderComponent(): void {
+  async renderComponent(): Promise<void> {
     this.chatSearchTypes
       .querySelector(".chat-search-type-user")
       ?.classList.add("chat-search-type");
     this.chatSearchTypes.dataset.chatType = chatType.user;
 
     this.generateContactItems();
+    await this.fetchTopMsgs();
+    this.createFirstPeerMsgComp();
   }
 
   // ----------------------------
@@ -427,6 +429,17 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
     // DELETE ACTION OPTION
     target.parentElement?.removeChild(target);
   };
+  private readonly scrollBottomPeerList = async (e: MouseEvent) => {
+    const t = e.target as HTMLElement;
+  };
+  private readonly getStartEnd = (
+    skip: number,
+    k: number = this.skipConst
+  ): { start: number; end: number } | void => {
+    if (typeof skip !== "number" || typeof k !== "number") return;
+
+    return { start: skip ? skip * k - 1 : 0, end: skip ? k * skip : k };
+  };
 
   // --------------------------
   // ----- CLASS UTILITY ------
@@ -517,28 +530,18 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
 
     this.chatSearchList.insertAdjacentElement("beforeend", searchItem);
   }
-  private generateContactItems(): void {
+  private generateContactItems = (): void => {
     let item: iRelation;
+    let i: number = 0;
+    const { start, end } = this.getStartEnd(this.skip)!;
 
-    for (item of PeerComponent.chatPeerRelationsInfo) {
+    const slicedArr = PeerComponent.chatPeerRelationsInfo.slice(start, end);
+    for (item of slicedArr) {
+      if (i === end) break;
       PeerComponent.createRelationItem(item);
+      i++;
     }
-
-    if (PeerComponent.chatPeerRelationsInfo.length) {
-      const firstRelation = PeerComponent.chatPeerRelationsInfo[0];
-
-      MessagesComponent.getInstance(
-        this.userData.act_id.accnt_id,
-        firstRelation.accnt_id,
-        firstRelation.accnt_name,
-        firstRelation.chat_id,
-        true,
-        firstRelation.type,
-        false,
-        true
-      );
-    }
-  }
+  };
   static readonly createRelationItem = (
     item: iRelation
   ): HTMLDivElement | void => {
@@ -632,6 +635,22 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
       skip: this.skip,
     };
   }
+  private readonly createFirstPeerMsgComp = () => {
+    if (PeerComponent.chatPeerRelationsInfo.length) {
+      const firstRelation = PeerComponent.chatPeerRelationsInfo[0];
+
+      MessagesComponent.getInstance(
+        this.userData.act_id.accnt_id,
+        firstRelation.accnt_id,
+        firstRelation.accnt_name,
+        firstRelation.chat_id,
+        true,
+        firstRelation.type,
+        false,
+        true
+      );
+    }
+  };
   static readonly updatePeerListHTML = (rel: iRelation, msg?: iMsgBody) => {
     const vRelInfo = this.searchPeerInfo(rel.chat_id);
     let vRelHTML: HTMLDivElement;
@@ -693,38 +712,56 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
     return html;
   };
   private readonly fetchTopMsgs = async () => {
-    let response!: iHttpResponse;
     let h: HTMLDivElement;
+    let i: number = 0;
+    const { start, end } = this.getStartEnd(this.skip)!;
 
-    for (h of PeerComponent.chatPeerRelationsHTML) {
-      try {
-        response = await tryCatch(httpGetTopMsg, h.dataset.chatId);
-      } catch (err) {
-        // return error.showComp(
-        error.showComp(
-          "ERROR: client is unable to fetch top chat message",
-          err
-        );
-      }
+    const slicedArrHTML = PeerComponent.chatPeerRelationsHTML.slice(start, end);
 
-      // VALIDATION: HTTP RESPONSE
-      const httpValid = Validate.httpRes(
-        response,
-        `server error occured`,
-        `client responded with an error for upon request for top chat message`
-      );
-
-      if (!httpValid) return;
-
-      if (
-        response.data.data === undefined ||
-        response.data.data === null ||
-        !("msg" in response.data.data)
-      )
-        return;
-
-      h.querySelector("p")!.textContent = (response.data.data as iMsgBody).msg;
+    for (h of slicedArrHTML) {
+      if (i === end) break;
+      await this.fetchTopMsg(h);
+      i++;
     }
+
+    this.skip++;
+  };
+  private readonly fetchTopMsg = async (peerHTML: HTMLDivElement) => {
+    if (
+      !(peerHTML instanceof HTMLDivElement) ||
+      peerHTML.dataset.chatId === undefined ||
+      peerHTML.dataset.chatId === null ||
+      !peerHTML.dataset.chatId.length
+    )
+      return;
+
+    let response!: iHttpResponse;
+
+    try {
+      response = await tryCatch(httpGetTopMsg, peerHTML.dataset.chatId);
+    } catch (err) {
+      // return error.showComp(
+      error.showComp("ERROR: client is unable to fetch top chat message", err);
+    }
+
+    // VALIDATION: HTTP RESPONSE
+    const httpValid = Validate.httpRes(
+      response,
+      `server error occured`,
+      `client responded with an error for upon request for top chat message`
+    );
+
+    if (!httpValid) return;
+    const data = response.data.data as iMsgBody;
+
+    if (
+      response.data.data === undefined ||
+      response.data.data === null ||
+      !("msg" in data)
+    )
+      return;
+
+    peerHTML.querySelector("p")!.textContent = data.msg;
   };
 
   static readonly getInstance = (
