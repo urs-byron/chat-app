@@ -587,7 +587,7 @@ export async function postRequestR(
   let receiverSocketId: string;
 
   let groupChatId!: string | APIError | Error;
-  if (type === 2 || type === 3)
+  if (type !== 1)
     groupChatId = await getGroupChatId(type === 2 ? receiverId : senderId);
   if (groupChatId instanceof APIError || groupChatId instanceof Error)
     return groupChatId;
@@ -595,11 +595,12 @@ export async function postRequestR(
   // EMIT REPLY EVENT TO senderId
 
   if (type !== 3) {
-    if (clients.get(soc.id)) {
-      soc.emit(socket.postRequestRev, newReqs.newOutReq, 0);
-    }
+    soc.emit(socket.postRequestRev, newReqs.newOutReq, 0, type);
   } else {
-    soc.to(groupChatId).emit(socket.postRequestRev, newReqs.newOutReq, 0);
+    soc.emit(socket.postRequestRev, newReqs.newOutReq, 0, type, groupChatId);
+    soc
+      .to(groupChatId)
+      .emit(socket.postRequestRev, newReqs.newOutReq, 0, type, groupChatId);
   }
 
   // EMIT REPLY EVENT TO receiverId
@@ -626,10 +627,14 @@ export async function postRequestR(
     if (receiverSocketId && clients.get(receiverSocketId)) {
       clients
         .get(receiverSocketId)!
-        .emit(socket.postRequestRev, newReqs.newInReq, 1);
+        .emit(socket.postRequestRev, newReqs.newInReq, 1, type);
     }
   } else {
-    soc.to(groupChatId).emit(socket.postRequestRev, newReqs.newInReq, 1);
+    soc.join(groupChatId);
+    soc
+      .to(groupChatId)
+      .emit(socket.postRequestRev, newReqs.newInReq, 1, type, groupChatId);
+    soc.leave(groupChatId);
   }
 }
 

@@ -19,17 +19,41 @@ export class RequestEvents {
   // arg2
   // 0 --- outgoing
   // 1 --- incoming
-  static readonly postRequestR = (requestItem: iRequest, type: 0 | 1) => {
+  static readonly postRequestR = (
+    requestItem: iRequest,
+    type: 0 | 1,
+    reqType: iReqType,
+    chatId: string
+  ) => {
     // OPTION FOR ADDING REQUEST VIA SOCKET IS NOT VIABLE SINCE SOCKET ID ARE FROM USER ID, CONNECTED UPON LOGGING IN, GROUP SOCKET IDS, MUST FIRST BE ESTABLISHED
     requestItem = GenUtil.requestStrIntToBool(requestItem);
 
-    UserComponent.createRequest(
-      requestItem,
-      type === 0
-        ? UserComponent.chatUserOutgoingWrap
-        : UserComponent.chatUserIncomingWrap,
-      type === 0 ? "outgoing" : "incoming"
-    );
+    if (reqType !== 3) {
+      // if request is sent from a group
+      if (!(reqType === 2 && type === 1))
+        UserComponent.createRequest(
+          requestItem,
+          type === 0
+            ? UserComponent.chatUserOutgoingWrap
+            : UserComponent.chatUserIncomingWrap,
+          type === 0 ? "outgoing" : "incoming"
+        );
+    }
+
+    if (reqType !== 1) {
+      console.log(reqType);
+      console.log(type);
+
+      if (!(reqType === 2 && type === 0))
+        MessagesOptionsComponent.createRequest(
+          requestItem,
+          type === 0
+            ? MessagesOptionsComponent.msgOptsOutgoingWrap
+            : MessagesOptionsComponent.msgOptsIncomingWrap,
+          type === 0 ? "incoming" : "incoming",
+          chatId
+        );
+    }
   };
 
   static readonly patchRequestR = (

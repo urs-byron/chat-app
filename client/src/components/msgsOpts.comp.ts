@@ -197,9 +197,13 @@ export class MessagesOptionsComponent extends Component<
   static readonly createRequest = (
     item: iRequest,
     wrapper: HTMLDivElement,
-    type: "incoming" | "outgoing"
+    type: "incoming" | "outgoing",
+    chatId?: string
   ): void => {
     item = GenUtil.requestStrIntToBool(item) as iRequest;
+
+    if (chatId !== undefined)
+      if (this.sType === "user" || this.sChatId !== chatId) return;
 
     const requestValid: iValidityType = Validate.requestItem(
       item,
