@@ -4,6 +4,9 @@ import { UserComponent } from "../components/user.comp";
 import { PeerComponent } from "../components/peer.comp";
 import { iRequest, iRequestApproveData } from "../models/user.model";
 import { SocketMethods } from "../util/socket.util";
+import { iReqType } from "../models/gen.model";
+import { GroupComponent } from "../components/group.comp";
+import { MessagesOptionsComponent } from "../components/msgsOpts.comp";
 
 export class RequestEvents {
   private static inst: RequestEvents;
@@ -32,12 +35,15 @@ export class RequestEvents {
   static readonly patchRequestR = (
     requestItemId: string,
     type: 0 | 1,
-    approveData: iRequestApproveData
+    approveData: iRequestApproveData,
+    reqType: iReqType,
+    chatId: string
   ): void => {
     if (approveData.relItem.type === "user")
       UserComponent.deleteRequest(requestItemId, type);
 
-    console.log(type);
+    if (reqType === 2 || reqType === 3)
+      MessagesOptionsComponent.deleteRequest(requestItemId, chatId);
 
     if (
       Validate.approveData(approveData).isValid &&
@@ -52,9 +58,6 @@ export class RequestEvents {
         }
       );
     }
-
-    console.log(Validate.approveData(approveData).isValid);
-    console.log(Validate.contactItem(approveData.relItem).isValid);
   };
 
   static getInst = (): RequestEvents => {

@@ -29,6 +29,7 @@ import {
   iGenRelationsDoc,
 } from "../models/gen.imodel";
 import { RedisFlushModes } from "redis";
+import cookieSession from "cookie-session";
 
 /*
 // URGENT
@@ -1150,14 +1151,15 @@ export async function getGroupChatId(
 
     if (!g.documents.length)
       return newApiError(404, "server found no matching group id");
-    return (g.documents[0] as unknown as iGroup).chat_id;
+
+    return (g.documents[0].value as unknown as iGroup).chat_id;
   } catch (err) {
     return newApiError(500, "server is unable to retrieve group cache", err);
   }
 }
 
 export async function patchRequestR(
-  type: 1 | 2 | 3,
+  reqType: 1 | 2 | 3,
   action: iGenRequestActions,
   senderId: string,
   receiverId: string,
@@ -1168,10 +1170,6 @@ export async function patchRequestR(
   newRecipientRelation: iRelation
 ): Promise<void | APIError | Error> {
   try {
-    const receiverSocketId = await redis.client.get(
-      redis.userSessionName(receiverId)
-    );
-
     // --- return socket.emit
     // arg1
     // iRequest
@@ -1182,38 +1180,81 @@ export async function patchRequestR(
     const receiverType: 1 | 0 = action === "cancel" ? 1 : 0;
 
     let groupChatId!: string | APIError | Error;
-    if (type === 2 || type === 3) {
-      groupChatId = await getGroupChatId(type === 2 ? receiverId : senderId);
+    if (reqType === 2 || reqType === 3) {
+      groupChatId = await getGroupChatId(reqType === 2 ? receiverId : senderId);
+      if (groupChatId instanceof APIError || groupChatId instanceof Error)
+        soc.emit(socket.serverErrRev, groupChatId);
     }
     if (groupChatId instanceof APIError || groupChatId instanceof Error)
       return groupChatId;
 
-    if (type !== 3) {
-      soc.emit(socket.patchRequestRev, receiverId, senderType, {
-        newStatus: newStatus,
-        relItem: newUserRelation,
-      });
+    if (reqType !== 3) {
+      soc.emit(
+        socket.patchRequestRev,
+        receiverId,
+        senderType,
+        {
+          newStatus: newStatus,
+          relItem: newUserRelation,
+        },
+        reqType
+      );
     } else {
-      soc.to(groupChatId).emit(socket.patchRequestRev, receiverId, senderType, {
-        newStatus: newStatus,
-        relItem: newUserRelation,
-      });
+      soc.emit(
+        socket.patchRequestRev,
+        receiverId,
+        senderType,
+        {
+          newStatus: newStatus,
+          relItem: newUserRelation,
+        },
+        reqType,
+        groupChatId
+      );
+      soc.to(groupChatId).emit(
+        socket.patchRequestRev,
+        receiverId,
+        senderType,
+        {
+          newStatus: newStatus,
+          relItem: newUserRelation,
+        },
+        reqType,
+        groupChatId
+      );
     }
 
-    if (type !== 2) {
+    if (reqType !== 2) {
+      const receiverSocketId = await redis.client.get(
+        redis.userSessionName(receiverId)
+      );
+
       if (receiverSocketId && clients.get(receiverSocketId)) {
-        clients
-          .get(receiverSocketId)!
-          .emit(socket.patchRequestRev, senderId, receiverType, {
+        clients.get(receiverSocketId)!.emit(
+          socket.patchRequestRev,
+          senderId,
+          receiverType,
+          {
             newStatus: newStatus,
             relItem: newRecipientRelation,
-          });
+          },
+          reqType
+        );
       }
     } else {
-      soc.to(groupChatId).emit(socket.patchRequestRev, senderId, receiverType, {
-        newStatus: newStatus,
-        relItem: newRecipientRelation,
-      });
+      soc.join(groupChatId);
+      soc.to(groupChatId).emit(
+        socket.patchRequestRev,
+        senderId,
+        receiverType,
+        {
+          newStatus: newStatus,
+          relItem: newRecipientRelation,
+        },
+        reqType,
+        groupChatId
+      );
+      soc.leave(groupChatId);
     }
   } catch (err) {
     return newApiError(

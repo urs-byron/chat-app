@@ -31,6 +31,8 @@ export class MessagesOptionsComponent extends Component<
 
   // COMPONENT FETCHED DATA
   private msgGrpInfo!: any;
+  static sType: iChatType;
+  static sChatId: string;
 
   private constructor(
     private readonly peerId: string,
@@ -50,6 +52,12 @@ export class MessagesOptionsComponent extends Component<
   }
 
   configureComponent(): void {
+    MessagesOptionsComponent.sType = this.type;
+    MessagesOptionsComponent.sChatId = this.chatId;
+
+    Object.freeze(MessagesOptionsComponent.sType);
+    Object.freeze(MessagesOptionsComponent.sChatId);
+
     this.msgOptsHeads = [
       ...document.querySelectorAll(".chat-msg-opts-head"),
     ]! as HTMLDivElement[];
@@ -129,8 +137,7 @@ export class MessagesOptionsComponent extends Component<
     }
 
     // SOCKET REQUEST
-    if (target.classList.contains("request-action")) console.log(action);
-    {
+    if (target.classList.contains("request-action")) {
       SocketMethods.socket?.emit(SocketMethods.patchRequestEv, reqBody, action);
     }
   };
@@ -339,7 +346,6 @@ export class MessagesOptionsComponent extends Component<
     //   </p>
     // </div>;
   };
-
   private createRequestBody(groupId: string, receiverId: string): iRequestBody {
     return {
       type: 3,
@@ -347,6 +353,28 @@ export class MessagesOptionsComponent extends Component<
       groupId: groupId,
     };
   }
+  static readonly deleteRequest = (requestItemId: string, chatId: string) => {
+    if (this.sType === "user" || MessagesOptionsComponent.sChatId !== chatId)
+      return;
+
+    (
+      [
+        ...MessagesOptionsComponent.msgOptsOutgoingWrap.children,
+      ] as HTMLDivElement[]
+    ).forEach((html: HTMLDivElement) => {
+      if (html.dataset.userId === requestItemId)
+        MessagesOptionsComponent.msgOptsOutgoingWrap.removeChild(html);
+    });
+
+    (
+      [
+        ...MessagesOptionsComponent.msgOptsIncomingWrap.children,
+      ] as HTMLDivElement[]
+    ).forEach((html: HTMLDivElement) => {
+      if (html.dataset.userId === requestItemId)
+        MessagesOptionsComponent.msgOptsIncomingWrap.removeChild(html);
+    });
+  };
 
   static readonly getInstance = (
     peerId: string,

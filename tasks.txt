@@ -54,3 +54,4 @@ SERVER
 --- e2e testing
 
 optional parameters checker
+if request action is reject, cancel, do not instantiate new msgList
