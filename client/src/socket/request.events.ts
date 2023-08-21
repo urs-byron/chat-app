@@ -28,27 +28,44 @@ export class RequestEvents {
     // OPTION FOR ADDING REQUEST VIA SOCKET IS NOT VIABLE SINCE SOCKET ID ARE FROM USER ID, CONNECTED UPON LOGGING IN, GROUP SOCKET IDS, MUST FIRST BE ESTABLISHED
     requestItem = GenUtil.requestStrIntToBool(requestItem);
 
-    if (reqType !== 3) {
-      // if request is sent from a group
-      if (!(reqType === 2 && type === 1))
+    console.log(reqType);
+    console.log(type);
+
+    if (reqType === 1) {
+      UserComponent.createRequest(
+        requestItem,
+        type === 0
+          ? UserComponent.chatUserOutgoingWrap
+          : UserComponent.chatUserIncomingWrap,
+        type === 0 ? "outgoing" : "incoming"
+      );
+    } else if (reqType === 2) {
+      if (type === 0)
         UserComponent.createRequest(
           requestItem,
-          type === 0
-            ? UserComponent.chatUserOutgoingWrap
-            : UserComponent.chatUserIncomingWrap,
-          type === 0 ? "outgoing" : "incoming"
+          UserComponent.chatUserOutgoingWrap,
+          "outgoing"
         );
-    }
-
-    if (reqType !== 1) {
-      if (!(reqType === 2 && type === 0))
+      else
         MessagesOptionsComponent.createRequest(
           requestItem,
-          type === 0
-            ? MessagesOptionsComponent.msgOptsOutgoingWrap
-            : MessagesOptionsComponent.msgOptsIncomingWrap,
-          type === 0 ? "incoming" : "incoming",
+          MessagesOptionsComponent.msgOptsIncomingWrap,
+          "incoming",
           chatId
+        );
+    } else {
+      if (type === 0)
+        MessagesOptionsComponent.createRequest(
+          requestItem,
+          MessagesOptionsComponent.msgOptsOutgoingWrap,
+          "outgoing",
+          chatId
+        );
+      else
+        UserComponent.createRequest(
+          requestItem,
+          UserComponent.chatUserIncomingWrap,
+          "incoming"
         );
     }
   };
