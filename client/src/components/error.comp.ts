@@ -32,7 +32,7 @@ export class ErrorComponent extends Component<HTMLElement, HTMLDivElement> {
       wrap.classList.add("invisibleElem");
       wrap.classList.remove("fadeIn");
       wrap.classList.add("hideComp");
-      wrap.classList.add("show-error-wrap");
+      wrap.classList.remove("show-error-wrap");
     }, 5000);
   };
 
