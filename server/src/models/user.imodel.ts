@@ -6,6 +6,7 @@ export type iUserSearchValues = {
   pattern: string;
   type: iSearchType;
   skip: number;
+  cnt: number;
 };
 
 //  0 (user) 1 (group)

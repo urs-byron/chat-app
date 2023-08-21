@@ -19,7 +19,6 @@ export class ServerMethods {
 
     MongoDBMethods.init();
     RedisMethods.init();
-    SocketMethods.init(server);
     await MongoDBMethods.connect();
     await RedisMethods.connect();
 
@@ -30,6 +29,7 @@ export class ServerMethods {
       console.log(`Server @ ${process.env.SERVER_M1_PORT} ...`);
     });
 
+    SocketMethods.init(server);
     // UTILITY
   }
 

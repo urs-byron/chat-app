@@ -14,6 +14,7 @@ import {
   iUserSearchObj,
   iUserSearchValues,
 } from "../../models/user.imodel";
+import { GeneralUtil } from "../../util/misc.util";
 
 /*
 // URGENT
@@ -37,20 +38,33 @@ export const postUserSearch: RequestHandler = async (req, res, next) => {
 
   // DATA GATHERING & SETTING
   const userId = (req.session as PassportSession).passport.user;
-  const { pattern, type, skip }: iUserSearchValues = req.body;
-  let searchResults: any;
+  const { pattern, type, skip, cnt }: iUserSearchValues = req.body;
+  // GET skip & limit for mongoose aggegate
+  const { skip: mSkip, limit: mLimit } = GeneralUtil.getMongoSkipLimit(
+    skip,
+    searchSkipCnt
+  );
 
-  // CONFIGURE SEARCH OPTIONS
+  // CONFIGURE SEARCH VARIABLES
   const { model, id, name, fields } = configSearch(type);
+  // GET search aggregate filter
+  const searchFilter = createSearchFilter(userId, pattern, id, name);
+
+  // VALIDATION: return if no more matching docs to return
+  const matchCount = await countMatch(model, searchFilter);
+  if (matchCount instanceof APIError || matchCount instanceof Error)
+    return next(matchCount);
+
+  // RESPONSE
+  if (cnt > matchCount)
+    return res.status(200).json({ statusCode: 200, data: [] });
 
   // FETCH ALL DOCUMENTS WITH MATCHING act_name pattern FROM DB
-  searchResults = await searchDbUserGroup(
-    userId,
-    pattern,
-    skip,
+  const searchResults = await searchDbUserGroup(
+    searchFilter,
+    mSkip,
+    mLimit,
     model,
-    id,
-    name,
     fields
   );
   if (searchResults instanceof APIError || searchResults instanceof Error)
@@ -109,35 +123,51 @@ export function configSearch(type: 0 | 1): {
     };
 }
 
-export async function searchDbUserGroup(
+export function createSearchFilter(
   userId: string,
   pattern: string,
-  skip: number,
-  model: Model<iUserDoc> | Model<iGroupDoc>,
   id: "act_id.accnt_id" | "grp_id",
-  name: "act_name" | "grp_name",
+  name: "act_name" | "grp_name"
+) {
+  return {
+    [`${id}`]: { $ne: userId },
+    [`${name}`]: {
+      $regex: pattern,
+      $options: "i",
+    },
+  };
+}
+
+export async function countMatch(
+  model: Model<iUserDoc> | Model<iGroupDoc>,
+  filter: any
+): Promise<number | APIError | Error> {
+  try {
+    const c = await model.count(filter);
+
+    return c;
+  } catch (err) {
+    return newApiError(500, "server is unable to search match count", err);
+  }
+}
+
+export async function searchDbUserGroup(
+  filter: any,
+  skip: number,
+  limit: number,
+  model: Model<iUserDoc> | Model<iGroupDoc>,
   fields: any
 ): Promise<iUserDoc[] | iGroupDoc[] | APIError | Error> {
   try {
     const searchResults = await model.aggregate([
-      {
-        $match: {
-          [`${id}`]: { $ne: userId },
-          [`${name}`]: {
-            $regex: pattern,
-            $options: "i",
-          },
-        },
-      },
-      {
-        $project: fields,
-      },
-      {
-        // EDIT
-        $skip: skip * searchSkipCnt,
-      },
+      { $match: filter },
+      { $sort: { act_name: 1 } },
+      { $project: fields },
+      { $skip: skip - 1 },
+      { $limit: limit },
     ]);
 
+    if (!searchResults.length) return [];
     return searchResults as iUserDoc[] | iGroupDoc[];
   } catch (err) {
     return newApiError(500, "server is unable to find user", err);
@@ -148,6 +178,13 @@ export async function filterNonPublic(
   searchResults: Array<iUserDoc | iGroupDoc>,
   type: 0 | 1
 ): Promise<Array<iUserSearchObj> | APIError | Error> {
+  if (
+    searchResults === undefined ||
+    searchResults === null ||
+    !searchResults.length
+  )
+    return [];
+
   let user: iUserDoc | iGroupDoc;
   let publicUsers: Array<iUserSearchObj> = [];
   let publicProp: iGenSecurityDoc | null;

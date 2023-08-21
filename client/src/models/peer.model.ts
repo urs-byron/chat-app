@@ -29,6 +29,7 @@ export interface iSearchValues {
   pattern: string;
   type: 0 | 1;
   skip: number;
+  cnt: number;
 }
 
 export interface iSearchItem {

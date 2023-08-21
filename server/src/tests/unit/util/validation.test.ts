@@ -94,14 +94,14 @@ describe("Validation Methods", () => {
 
   describe("Search Inputs", () => {
     test("if valid mock search inputs would pass", () => {
-      expect(valid.search({ pattern: "a", type: 0, skip: 0 })).toStrictEqual(
-        validRes
-      );
+      expect(
+        valid.search({ pattern: "a", type: 0, skip: 0, cnt: 0 })
+      ).toStrictEqual(validRes);
     });
     test("if invalid mock search inputs would return an error", () => {
-      expect(valid.search({ pattern: "", type: 0, skip: 0 })).toStrictEqual(
-        invalidRes("Search Pattern is required")
-      );
+      expect(
+        valid.search({ pattern: "", type: 0, skip: 0, cnt: 0 })
+      ).toStrictEqual(invalidRes("Search Pattern is required"));
     });
 
     // further combination of error is not necessary since typescript prohibits them

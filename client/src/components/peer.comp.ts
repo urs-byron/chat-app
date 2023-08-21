@@ -38,14 +38,19 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
   private chatSearchTypes!: HTMLDivElement;
   private chatSearchInput!: HTMLInputElement;
   private chatSearchList!: HTMLDivElement;
+  private chatSearchListWrap!: HTMLDivElement;
   static chatPeerList: HTMLDivElement;
   private chatPeerListWrap!: HTMLDivElement;
 
   static chatPeerRelationsInfo: Array<iRelation> = [];
   static chatPeerRelationsHTML: Array<HTMLDivElement> = [];
 
-  private skip: number = 0;
-  private skipConst: number = 15;
+  private relSkip: number = 0;
+  private relSkipConst: number = 15;
+  private searchSkip: number = 0;
+  private searchSkipConst: number = 15;
+  private searchFull: boolean = false;
+  private searchResults: number = 0;
 
   // FOREIGN COMPONENT ELEMENT
   private chatApp!: HTMLDivElement;
@@ -95,6 +100,9 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
     this.chatSearchList = document.querySelector(
       ".chat-search-list"
     )! as HTMLDivElement;
+    this.chatSearchListWrap = document.querySelector(
+      ".chat-search-list-wrap"
+    )! as HTMLDivElement;
     PeerComponent.chatPeerList = document.querySelector(
       ".chat-contact-list"
     )! as HTMLDivElement;
@@ -116,6 +124,10 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
     PeerComponent.chatPeerList.addEventListener(
       "click",
       this.clickPeerListHandler
+    );
+    this.chatSearchListWrap.addEventListener(
+      "scroll",
+      this.scrollBottomSearchList
     );
     this.chatPeerListWrap.addEventListener("scroll", this.scrollBottomPeerList);
 
@@ -159,22 +171,34 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
       this.chatSearchForm.classList.add("chat-search-form-search-state");
     }
   };
-  private submitSearchHandler = async (e: Event): Promise<void> => {
-    e.preventDefault();
-
-    // DATA GATHERING
+  private readonly createSearch = (): iSearchValues => {
     const searchType: iChatType = this.chatSearchTypes.dataset
       .chatType! as iChatType;
-    const skip: number = 0;
+    const skip: number = this.searchSkip;
 
-    const chatSearchValue: iSearchValues = {
+    return {
       pattern: this.chatSearchInput.value.trim(),
       type: searchType === "user" ? 0 : 1,
       skip: skip,
+      cnt: this.searchResults,
     };
+  };
+  private submitSearchHandler = async (e: Event): Promise<void> => {
+    e.preventDefault();
+
+    // PROCESS: reset search data
+    this.searchSkip = 0;
+    this.searchResults = 0;
+    this.searchFull = false;
+
+    // DATA GATHERING
+    const chatSearchValue: iSearchValues = this.createSearch();
 
     // VALIDATION
-    const searchValid = Validate.search(chatSearchValue, searchType);
+    const searchValid = Validate.search(
+      chatSearchValue,
+      this.chatSearchTypes.dataset.chatType! as iChatType
+    );
     if (!searchValid.isValid) {
       return error.showComp(
         "ERROR: client search data is inavalid",
@@ -186,6 +210,9 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
       this.chatSearchList.innerHTML = "";
       return;
     }
+
+    // VALIDATION: returns
+    if (this.searchFull) return;
 
     // HTTP REQUEST
     let response!: iHttpResponse;
@@ -215,7 +242,75 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
       searchItems.length > 0
     ) {
       // HTTP RESPONSE PROCESSING
-      this.generateSearchItems(searchItems, searchType);
+      this.searchResults = this.searchResults + searchItems.length;
+      this.searchSkip++;
+      this.generateSearchItems(
+        searchItems,
+        this.chatSearchTypes.dataset.chatType! as iChatType
+      );
+    }
+
+    if (!searchItems.length || searchItems.length < this.searchSkipConst)
+      this.searchFull = true;
+  };
+  private scrollBottomSearchList = async (e: Event) => {
+    if (this.searchFull) return;
+
+    const t = e.target as HTMLElement;
+
+    if (t.scrollTop === t.scrollHeight - t.offsetHeight) {
+      // DATA GATHERING
+      const chatSearchValue: iSearchValues = this.createSearch();
+
+      // VALIDATION
+      const searchValid = Validate.search(
+        chatSearchValue,
+        this.chatSearchTypes.dataset.chatType! as iChatType
+      );
+      if (!searchValid.isValid) {
+        return error.showComp(
+          "ERROR: client search data is inavalid",
+          searchValid.error
+        );
+      }
+
+      // HTTP REQUEST
+      let response!: iHttpResponse;
+      try {
+        response = await tryCatch(httpGetUsers, chatSearchValue);
+      } catch (err) {
+        return error.showComp(
+          `ERROR: client is unable to request for user search`,
+          err
+        );
+      }
+
+      // VALIDATION: HTTP RESPONSE
+      const httpValid = Validate.httpRes(
+        response,
+        `server is unable to process user search`,
+        `server responded with an error upon client's request for user search`
+      );
+      if (!httpValid) return;
+
+      // PROCESS
+      const searchItems: iSearchItems = response.data.data;
+      if (
+        searchItems &&
+        typeof searchItems === "object" &&
+        searchItems.length > 0
+      ) {
+        // HTTP RESPONSE PROCESSING
+        this.searchSkip++;
+        this.searchResults = this.searchResults + searchItems.length;
+        this.generateSearchItems(
+          searchItems,
+          this.chatSearchTypes.dataset.chatType! as iChatType
+        );
+      }
+
+      if (!searchItems.length || searchItems.length < this.searchSkipConst)
+        this.searchFull = true;
     }
   };
   private clickSearchTypesHandler = (e: Event): void => {
@@ -442,12 +537,12 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
       this.generateContactItems();
       await this.fetchTopMsgs();
 
-      this.skip++;
+      this.relSkip++;
     }
   };
   private readonly getStartEnd = (
     skip: number,
-    k: number = this.skipConst
+    k: number = this.relSkipConst
   ): { start: number; end: number } | void => {
     if (typeof skip !== "number" || typeof k !== "number") return;
 
@@ -502,6 +597,7 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
       }
     );
   }
+  private async getPeerSearches() {}
   private generateSearchItems(
     userItems: iSearchItems,
     type: "user" | "group"
@@ -544,11 +640,11 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
     this.chatSearchList.insertAdjacentElement("beforeend", searchItem);
   }
   private generateContactItems = (): void => {
-    const { start, end } = this.getStartEnd(this.skip)!;
+    const { start, end } = this.getStartEnd(this.relSkip)!;
     let i: number = start;
     if (start > PeerComponent.chatPeerRelationsInfo.length) return;
     const slicedArr = PeerComponent.chatPeerRelationsInfo.slice(
-      this.skip === 0 ? 0 : start - 1,
+      this.relSkip === 0 ? 0 : start - 1,
       end + 1
     );
 
@@ -649,7 +745,7 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
       contactType: "contact",
       chatType: "user",
       groupId: null,
-      skip: this.skip,
+      skip: this.relSkip,
     };
   }
   private readonly createFirstPeerMsgComp = () => {
@@ -731,8 +827,8 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
   private readonly fetchTopMsgs = async () => {
     let h: HTMLDivElement;
     let i: number = 0;
-    const { start, end } = this.getStartEnd(this.skip)!;
-    this.skip++;
+    const { start, end } = this.getStartEnd(this.relSkip)!;
+    this.relSkip++;
     const slicedArrHTML = PeerComponent.chatPeerRelationsHTML.slice(start, end);
 
     for (h of slicedArrHTML) {

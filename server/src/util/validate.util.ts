@@ -101,7 +101,7 @@ export class ValidateMethods {
     return this.setValidity(validity);
   }
   static search(searchBody: iUserSearchValues): iValidityType {
-    const { pattern, type, skip } = searchBody;
+    const { pattern, type, skip, cnt } = searchBody;
 
     const validity = [
       typeof pattern === "string" && pattern.length > 0
@@ -109,6 +109,7 @@ export class ValidateMethods {
         : "Search Pattern is required",
       type === 0 || type === 1 ? null : "Search Type must be either 0 or 1",
       typeof skip === "number" ? null : "Search Skip must be a number",
+      typeof cnt === "number" ? null : "Search Skip must be a number",
     ];
 
     return this.setValidity(validity);
