@@ -11,6 +11,8 @@ export class MessagesComponent extends Component<HTMLDivElement, HTMLElement> {
 
   // COMPONENT ELEMENTS
   static chatMsgs: HTMLDivElement;
+  static readonly chatMsgUserClass = "chat-msgs-user";
+  static readonly chatMsgGroupClass = "chat-msgs-group";
 
   private constructor() {
     super(".chat-msgs-wrap", "msgs-temp", "afterbegin");
@@ -39,9 +41,18 @@ export class MessagesComponent extends Component<HTMLDivElement, HTMLElement> {
     // if constructor is called for creating class component
     if (!deleteInstance) {
       // if no messageComponent exists, create a new one
+
       if (!this.instance) {
         this.instance = new MessagesComponent();
         this.chatMsgs = document.querySelector(".chat-msgs")! as HTMLDivElement;
+
+        type === "user"
+          ? MessagesComponent.chatMsgs.classList.add(
+              MessagesComponent.chatMsgUserClass
+            )
+          : MessagesComponent.chatMsgs.classList.add(
+              MessagesComponent.chatMsgGroupClass
+            );
 
         this.getMsgsInstance(
           userId,
@@ -67,6 +78,16 @@ export class MessagesComponent extends Component<HTMLDivElement, HTMLElement> {
         );
 
         this.chatMsgs.innerHTML = "";
+
+        type === "user"
+          ? MessagesComponent.chatMsgs.classList.replace(
+              MessagesComponent.chatMsgGroupClass,
+              MessagesComponent.chatMsgUserClass
+            )
+          : MessagesComponent.chatMsgs.classList.replace(
+              MessagesComponent.chatMsgUserClass,
+              MessagesComponent.chatMsgGroupClass
+            );
 
         this.getMsgsInstance(
           userId,
