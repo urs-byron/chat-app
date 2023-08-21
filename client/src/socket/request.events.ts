@@ -28,9 +28,6 @@ export class RequestEvents {
     // OPTION FOR ADDING REQUEST VIA SOCKET IS NOT VIABLE SINCE SOCKET ID ARE FROM USER ID, CONNECTED UPON LOGGING IN, GROUP SOCKET IDS, MUST FIRST BE ESTABLISHED
     requestItem = GenUtil.requestStrIntToBool(requestItem);
 
-    console.log(reqType);
-    console.log(type);
-
     if (reqType === 1) {
       UserComponent.createRequest(
         requestItem,

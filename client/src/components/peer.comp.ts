@@ -39,6 +39,8 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
   private chatSearchInput!: HTMLInputElement;
   private chatSearchList!: HTMLDivElement;
   static chatPeerList: HTMLDivElement;
+  private chatPeerListWrap!: HTMLDivElement;
+
   static chatPeerRelationsInfo: Array<iRelation> = [];
   static chatPeerRelationsHTML: Array<HTMLDivElement> = [];
 
@@ -96,6 +98,9 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
     PeerComponent.chatPeerList = document.querySelector(
       ".chat-contact-list"
     )! as HTMLDivElement;
+    this.chatPeerListWrap = document.querySelector(
+      ".chat-contact-list-wrap"
+    )! as HTMLDivElement;
 
     this.chatApp = document.querySelector(".chat-app")! as HTMLDivElement;
 
@@ -112,6 +117,7 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
       "click",
       this.clickPeerListHandler
     );
+    this.chatPeerListWrap.addEventListener("scroll", this.scrollBottomPeerList);
 
     document.addEventListener("click", this.undoEventClickHandler);
     document.addEventListener("keypress", this.undoEventKeyHandler);
@@ -429,8 +435,15 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
     // DELETE ACTION OPTION
     target.parentElement?.removeChild(target);
   };
-  private readonly scrollBottomPeerList = async (e: MouseEvent) => {
+  private readonly scrollBottomPeerList = async (e: Event) => {
     const t = e.target as HTMLElement;
+
+    if (t.scrollTop === t.scrollHeight - t.offsetHeight) {
+      this.generateContactItems();
+      await this.fetchTopMsgs();
+
+      this.skip++;
+    }
   };
   private readonly getStartEnd = (
     skip: number,
@@ -438,7 +451,7 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
   ): { start: number; end: number } | void => {
     if (typeof skip !== "number" || typeof k !== "number") return;
 
-    return { start: skip ? skip * k - 1 : 0, end: skip ? k * skip : k };
+    return { start: skip ? skip * k : 0, end: (skip ? (skip + 1) * k : k) - 1 };
   };
 
   // --------------------------
@@ -531,11 +544,15 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
     this.chatSearchList.insertAdjacentElement("beforeend", searchItem);
   }
   private generateContactItems = (): void => {
-    let item: iRelation;
-    let i: number = 0;
     const { start, end } = this.getStartEnd(this.skip)!;
+    let i: number = start;
+    if (start > PeerComponent.chatPeerRelationsInfo.length) return;
+    const slicedArr = PeerComponent.chatPeerRelationsInfo.slice(
+      this.skip === 0 ? 0 : start - 1,
+      end + 1
+    );
 
-    const slicedArr = PeerComponent.chatPeerRelationsInfo.slice(start, end);
+    let item: iRelation;
     for (item of slicedArr) {
       if (i === end) break;
       PeerComponent.createRelationItem(item);
@@ -715,7 +732,7 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
     let h: HTMLDivElement;
     let i: number = 0;
     const { start, end } = this.getStartEnd(this.skip)!;
-
+    this.skip++;
     const slicedArrHTML = PeerComponent.chatPeerRelationsHTML.slice(start, end);
 
     for (h of slicedArrHTML) {
@@ -723,8 +740,6 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
       await this.fetchTopMsg(h);
       i++;
     }
-
-    this.skip++;
   };
   private readonly fetchTopMsg = async (peerHTML: HTMLDivElement) => {
     if (
