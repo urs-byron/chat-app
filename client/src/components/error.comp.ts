@@ -26,11 +26,13 @@ export class ErrorComponent extends Component<HTMLElement, HTMLDivElement> {
 
     wrap.classList.remove("hideComp");
     wrap.classList.remove("invisibleElem");
+    wrap.classList.add("show-error-wrap");
     wrap.classList.add("fadeIn");
     setTimeout(() => {
       wrap.classList.add("invisibleElem");
       wrap.classList.remove("fadeIn");
       wrap.classList.add("hideComp");
+      wrap.classList.add("show-error-wrap");
     }, 5000);
   };
 
