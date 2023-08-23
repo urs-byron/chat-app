@@ -15,13 +15,21 @@ export class AuthComponent extends Component<HTMLDivElement, HTMLElement> {
   private appComp: AppComponent = AppComponent.getInstance();
   static authWrap: HTMLDivElement;
   static authLoader: HTMLDivElement;
+  private authComps!: HTMLDivElement;
+  private authRegisterComp!: HTMLDivElement;
+  private authLoginComp!: HTMLDivElement;
+
   private regForm!: HTMLFormElement;
   private regUsernameInput!: HTMLInputElement;
   private regPasswordInput!: HTMLInputElement;
   private regRePasswordInput!: HTMLInputElement;
+  private signInSpan!: HTMLSpanElement;
   private logForm!: HTMLFormElement;
   private logUsernameInput!: HTMLInputElement;
   private logPasswordInput!: HTMLInputElement;
+  private signUpSpan!: HTMLSpanElement;
+
+  private readonly showSignClass = "show-sign-in";
 
   private constructor() {
     super(".chat-app", "auth-temp", "afterbegin");
@@ -36,9 +44,16 @@ export class AuthComponent extends Component<HTMLDivElement, HTMLElement> {
     AuthComponent.authLoader = document.querySelector(
       ".auth-wrap .loader"
     )! as HTMLDivElement;
+    this.authRegisterComp = document.querySelector(
+      ".auth-register-div"
+    )! as HTMLDivElement;
+    this.authLoginComp = document.querySelector(
+      "auth-login-div"
+    )! as HTMLDivElement;
     this.regForm = this.insertedElement.querySelector(
       "#register-form"
     )! as HTMLFormElement;
+    this.authComps = document.querySelector(".auth-comps")! as HTMLDivElement;
     this.regUsernameInput = document.getElementById(
       "reg-username"
     )! as HTMLInputElement;
@@ -57,7 +72,15 @@ export class AuthComponent extends Component<HTMLDivElement, HTMLElement> {
     this.logPasswordInput = document.getElementById(
       "log-password"
     )! as HTMLInputElement;
+    this.signInSpan = document.querySelector(
+      ".auth-register-div p span"
+    )! as HTMLSpanElement;
+    this.signUpSpan = document.querySelector(
+      ".auth-login-div p span"
+    )! as HTMLSpanElement;
 
+    this.signInSpan.addEventListener("click", this.clickSignInSpan);
+    this.signUpSpan.addEventListener("click", this.clickSignUpSpan);
     this.regForm.addEventListener("submit", this.submitRegisterFormHandler);
     this.logForm.addEventListener("submit", this.submitLoginFormHandler);
   }
@@ -148,6 +171,16 @@ export class AuthComponent extends Component<HTMLDivElement, HTMLElement> {
 
     this.appComp.appUser();
     this.clearLoginInput();
+  };
+  private clickSignInSpan = (e: MouseEvent): void => {
+    if (!this.authComps.classList.contains(this.showSignClass)) {
+      this.authComps.classList.add(this.showSignClass);
+    }
+  };
+  private clickSignUpSpan = (e: MouseEvent): void => {
+    if (this.authComps.classList.contains(this.showSignClass)) {
+      this.authComps.classList.remove(this.showSignClass);
+    }
   };
 
   // --------------------------

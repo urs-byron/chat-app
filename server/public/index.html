@@ -6,12 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <title>Wired Chat</title>
+    <!-- STYLES -->
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap");
+    </style>
     <link rel="icon" type="image/png" href="./img/wired-icon-modified.ico" />
-    <link rel="stylesheet" href="./css/index.style.css" />
     <script
       src="https://kit.fontawesome.com/449ddc07f5.js"
       crossorigin="anonymous"
     ></script>
+    <link rel="stylesheet" href="./css/index.style.css" />
     <script type="module" src="./bundle.js" defer></script>
   </head>
   <body>
@@ -23,41 +27,132 @@
             <p>wiring to server</p>
           </div>
         </div>
-        <div class="auth-comp hideElement">
-          <h1>Register</h1>
-          <form id="register-form" method="post" action="/auth/register">
-            <label for="username">username</label>
-            <input type="text" id="reg-username" name="username" required />
-            <br />
-            <label for="password">password</label>
-            <input type="password" id="reg-password" name="password" required />
-            <br />
-            <label for="rePassword">confirm password</label>
-            <input
-              type="password"
-              id="reg-rePassword"
-              name="rePassword"
-              required
-            />
-            <br />
-            <input type="submit" value="submit" />
-          </form>
-          <br />
-          <h1>Login</h1>
-          <form id="login-form" method="post" action="/auth/login">
-            <label for="username">username</label>
-            <input id="log-username" type="text" name="username" />
-            <br />
-            <label for="password">password</label>
-            <input id="log-password" type="password" name="password" />
-            <br />
-            <input type="submit" value="submit" />
-          </form>
-          <a href="/auth/login/google">google</a>
-          <br />
-          <a href="/auth/login/facebook">facebook</a>
-          <br />
-          <a href="/auth/login/github">github</a>
+        <div class="auth-comps-wrap">
+          <div class="auth-comps">
+            <div class="auth-banners">
+              <img
+                src="./img/auth_banner_static.png"
+                alt="auth-component banner"
+              />
+            </div>
+
+            <div class="auth-comp hideElement">
+              <div class="auth-register-div">
+                <br />
+                <br />
+
+                <img src="./img//flying-bird.png" alt="app-logo" />
+
+                <h2>Registration</h2>
+
+                <form id="register-form" method="post" action="/auth/register">
+                  <caption>
+                    <sub>Please fill the form below</sub>
+                  </caption>
+
+                  <!-- <label for="username">username</label> -->
+                  <input
+                    type="text"
+                    id="reg-username"
+                    name="username"
+                    placeholder="Username"
+                    required
+                  />
+                  <br />
+                  <!-- <label for="password">password</label> -->
+                  <input
+                    type="password"
+                    id="reg-password"
+                    name="password"
+                    placeholder="Password"
+                    required
+                  />
+                  <br />
+                  <!-- <label for="rePassword">confirm password</label> -->
+                  <input
+                    type="password"
+                    id="reg-rePassword"
+                    name="rePassword"
+                    placeholder="Confirm Password"
+                    required
+                  />
+                  <br />
+                  <input type="submit" value="submit" />
+                </form>
+
+                <br />
+                <br />
+                <hr />
+                <br />
+                <br />
+
+                <p>Already have an account? <span>Sign-in</span></p>
+              </div>
+
+              <div class="auth-login-div">
+                <img src="./img//flying-bird.png" alt="app-logo" />
+
+                <h2>Welcome back!</h2>
+
+                <form id="login-form" method="post" action="/auth/login">
+                  <caption>
+                    <sub> Please enter your credentials</sub>
+                  </caption>
+
+                  <!-- <label for="username">username</label> -->
+                  <input
+                    id="log-username"
+                    type="text"
+                    name="username"
+                    placeholder="Username"
+                    required
+                  />
+                  <br />
+                  <!-- <label for="password">password</label> -->
+                  <input
+                    id="log-password"
+                    type="password"
+                    name="password"
+                    placeholder="Password"
+                    required
+                  />
+                  <br />
+                  <input type="submit" value="submit" />
+                </form>
+
+                <br />
+                <hr />
+                <br />
+
+                <div class="auth-signon-div">
+                  <caption>
+                    <sub>or Sign-in using</sub>
+                  </caption>
+
+                  <a href="1/auth/login/google" class="auth-signon-google">
+                    <i class="fa-brands fa-google"></i>
+                    <span>Log in with Google</span>
+                  </a>
+
+                  <a href="1/auth/login/facebook" class="auth-signon-facebook">
+                    <i class="fa-brands fa-facebook-f"></i>
+                    <span>Log in with Facebook</span>
+                  </a>
+
+                  <a href="1/auth/login/github" class="auth-signon-github">
+                    <i class="fa-brands fa-github"></i>
+                    <span>Log in with Github</span>
+                  </a>
+                </div>
+
+                <br />
+                <hr />
+                <br />
+
+                <p>Don't have an account? <span>Sign-up</span></p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </template>

@@ -11,10 +11,10 @@ import { Strategy as LocalStrategy } from "passport-local";
 import { Strategy as GithubStrategy } from "passport-github2";
 import { Strategy as FacebookStrategy } from "passport-facebook";
 import {
-  Strategy as GoogleStrategy,
   Profile,
-  StrategyOptions,
   VerifyCallback,
+  StrategyOptions,
+  Strategy as GoogleStrategy,
 } from "passport-google-oauth20";
 
 // --- PASSPORT WILL SEARCH HTTP.REQ BASED ON THESE FIELDS

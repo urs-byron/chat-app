@@ -143,8 +143,8 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
     this.chatSearchTypes.dataset.chatType = chatType.user;
 
     this.generateContactItems();
-    await this.fetchTopMsgs();
     this.createFirstPeerMsgComp();
+    await this.fetchTopMsgs();
   }
 
   // ----------------------------

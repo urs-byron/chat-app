@@ -58,7 +58,7 @@ app_e1.use(passport.session());
 // --- exp-ROUTERS
 app_e1.use("/1", v1_router);
 
-app_e1.get("/*", (req, res, next) => {
+app_e1.get("/", (req, res, next) => {
   res.sendFile(path.resolve(__dirname, "..", "public", "index.html"));
 });
 

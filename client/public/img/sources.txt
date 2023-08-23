@@ -6,3 +6,6 @@
 
  /////////// discuss.gif
  https://loading.io/spinner/discuss/-discuss-bubble-talk-speak-ring-rotate
+
+ /////////// auth_login.png
+ https://usersnap.com/blog/background-webdesign/

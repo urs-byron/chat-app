@@ -10,6 +10,14 @@ a {
   color: black;
   text-decoration: none;
 }
+
+input:focus,
+select:focus,
+textarea:focus,
+button:focus {
+  outline: none;
+}
+
 :root {
   --gen-app-h: 100vh;
   --gen-head-height: 50px;
@@ -47,6 +55,10 @@ a {
   overflow: hidden;
   height: var(--gen-app-h);
   width: 100vw;
+
+  background: linear-gradient(blue 0 0);
+
+  font-family: "Indie Flower", cursive;
 }
 .chat-app {
   display: grid;
@@ -58,10 +70,19 @@ a {
 .chat-app-user-state {
   left: 0;
 }
+.chat-wrap {
+  display: grid;
+  grid-template-columns: 0.225fr 0.775fr;
+}
+
+/* ------------------------------------- */
+/* ----------- AUTH WRAPPER ------------ */
+/* ------------------------------------- */
 .auth-wrap {
-  position: relative;
-  top: 0;
-  left: 0;
+  display: grid;
+  grid-template-columns: auto;
+  justify-content: center;
+  align-content: center;
 
   color: black;
 }
@@ -70,9 +91,173 @@ a {
   bottom: 2.5rem;
   right: 0;
 }
-.chat-wrap {
+
+.auth-comps-wrap {
+  --auth-comps-wrap-w: 55rem;
+
+  height: auto;
+  width: var(--auth-comps-wrap-w);
+  border-radius: 5px;
+
+  overflow: hidden;
+}
+
+.auth-comps {
+  --auth-comps-h: 40rem;
+  --auth-comps-w: 90rem;
+  --auth-forms-w: 300px;
+  --auth-banner-left: -14rem;
+
+  height: var(--auth-comps-h);
+  width: var(--auth-comps-w);
+  position: relative;
+  left: 0;
+
+  transition: var(--gen-transition);
+}
+.auth-comps hr {
+  opacity: 0.5;
+}
+.show-sign-in {
+  --auth-banner-left: 0rem;
+
+  left: calc(calc(var(--auth-comps-w) - var(--auth-comps-wrap-w)) * -1);
+  /* left: calc(
+    calc(calc(var(--auth-comps-wrap-w) - var(--auth-forms-w)) - 1rem) * -1
+  ); */
+}
+
+.auth-banners {
+  height: var(--auth-comps-h);
+  width: calc(var(--auth-comps-w) + 15rem);
+  padding-top: 3.5rem;
+
+  position: relative;
+  top: 0;
+  left: var(--auth-banner-left);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  background: linear-gradient(#0173a7 0 0);
+
+  z-index: 5;
+
+  text-align: center;
+
+  transition: var(--gen-transition);
+}
+.auth-banners img {
+  height: 50%;
+}
+
+.auth-comp {
+  height: var(--auth-comps-h);
+  width: var(--auth-comps-w);
+
+  padding: 2rem;
+
   display: grid;
-  grid-template-columns: 0.225fr 0.775fr;
+  grid-template-columns: repeat(2, var(--auth-forms-w));
+  justify-content: space-between;
+
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  z-index: 10;
+}
+.auth-comp input {
+  height: 30px;
+  width: 100%;
+  border: 0px solid transparent;
+  border-radius: 4px;
+
+  font-family: "Indie Flower", cursive;
+}
+.auth-comp input:last-child {
+  background: linear-gradient(#f176ff 0 0);
+  color: white;
+}
+.auth-register-div,
+.auth-login-div {
+  padding: 1.5rem;
+  border-radius: 5px;
+  background: linear-gradient(white 0 0);
+
+  text-align: center;
+
+  transition: var(--gen-transition);
+}
+.auth-register-div {
+  box-shadow: 10px 0px 35px 4px rgba(0, 0, 0, 0.69);
+}
+.auth-login-div {
+  box-shadow: -10px 0px 35px 4px rgba(0, 0, 0, 0.69);
+}
+.auth-register-div form,
+.auth-login-div form {
+  display: grid;
+  row-gap: 5px;
+}
+.auth-register-div img,
+.auth-login-div img {
+  height: 45px;
+}
+
+.auth-signon-div {
+  padding: 0 1rem;
+
+  display: grid;
+  row-gap: 10px;
+}
+.auth-signon-div a {
+  height: 40px;
+
+  padding: 0.15rem;
+  border-radius: 3px;
+
+  display: grid;
+  grid-template-columns: 0.15fr 0.85fr;
+  grid-template-rows: 1fr;
+
+  color: white;
+}
+.auth-signon-div a * {
+  display: grid;
+  align-content: center;
+}
+.auth-signon-div a i {
+  border-radius: 2.5px;
+
+  background: linear-gradient(white 0 0);
+}
+.auth-signon-google {
+  background: linear-gradient(#dd4b39 0 0);
+}
+.auth-signon-google i {
+  color: #dd4b39;
+}
+.auth-signon-facebook {
+  background: linear-gradient(#3b5998 0 0);
+}
+.auth-signon-facebook i {
+  color: #3b5998;
+}
+.auth-signon-github {
+  background: linear-gradient(#484444 0 0);
+}
+.auth-signon-github i {
+  color: #484444;
+}
+
+.auth-register-div p span:last-child,
+.auth-login-div p span:last-child {
+  cursor: pointer;
+
+  font-weight: bold;
+  text-decoration: underline;
 }
 
 /* ------------------------------------- */
@@ -373,8 +558,6 @@ a {
 
   position: relative;
   left: 0;
-
-  transition: all 0.25s;
 }
 
 /* ------------------------------------- */
