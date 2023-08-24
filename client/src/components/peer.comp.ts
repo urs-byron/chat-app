@@ -77,7 +77,7 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
       ".chat-user-wrap"
     )! as HTMLDivElement;
     this.chatUserToggle = document.querySelector(
-      ".chat-user-toggle > i"
+      ".chat-user-toggle > button"
     )! as HTMLDivElement;
     this.chatPeerHeadings = document.querySelector(
       ".chat-lists-head"
@@ -679,6 +679,11 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
     itemWrap.dataset.chatType = item.type;
 
     // item main
+    //// item main icon
+    const itemNameIcon = document.createElement("div");
+    itemNameIcon.textContent = item.accnt_name[0];
+    itemNameIcon.classList.add("chat-contact-icon");
+
     //// item main wrap
     const itemNameWrap = document.createElement("div");
     itemNameWrap.classList.add("chat-contact-info");
@@ -688,9 +693,21 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
     //// item main content --------------- EDIT
     const itemText = document.createElement("p");
 
-    if (item.mute) itemText.textContent = `------`;
-    else itemText.textContent = `Greet your new peer.`;
+    const itemTextTime = document.createElement("span");
+    const itemTextMsg = document.createElement("span");
 
+    if (item.mute) {
+      itemTextTime.textContent = `---`;
+      itemTextMsg.textContent = ` - ------`;
+    } else {
+      itemTextTime.textContent = `---`;
+      itemTextMsg.textContent = ` - Say Hi!`;
+    }
+
+    // fist msg info is time
+    itemText.appendChild(itemTextTime);
+    // last msg info is message
+    itemText.appendChild(itemTextMsg);
     itemNameWrap.appendChild(itemName);
     itemNameWrap.appendChild(itemText);
 
@@ -730,6 +747,7 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
     itemTooltipWrap.appendChild(itemTooltip);
     itemTooltipWrap.appendChild(itemTooltipContext);
 
+    itemWrap.appendChild(itemNameIcon);
     itemWrap.appendChild(itemNameWrap);
     itemWrap.appendChild(itemTooltipWrap);
     itemNameWrap.addEventListener("click", this.instance!.clickPeerItemHandler);
@@ -790,10 +808,8 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
     }
 
     // if called from new msg, add message
-    if (msg !== undefined) {
-      const p = vRelHTML.querySelector("h3 + p")!;
-      p.textContent =
-        GenUtil.milliToTime(msg?.timeReceived!) + " - " + msg?.msg!;
+    if (msg !== undefined && msg !== null && "msg" in msg) {
+      PeerComponent.updateMsg(vRelHTML, msg);
     }
 
     // if rel not atop peerList
@@ -865,14 +881,15 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
     if (!httpValid) return;
     const data = response.data.data as iMsgBody;
 
-    if (
-      response.data.data === undefined ||
-      response.data.data === null ||
-      !("msg" in data)
-    )
-      return;
+    if (data === undefined || data === null || !("msg" in data)) return;
 
-    peerHTML.querySelector("p")!.textContent = data.msg;
+    PeerComponent.updateMsg(peerHTML, data);
+  };
+  static readonly updateMsg = (html: HTMLDivElement, data: iMsgBody) => {
+    const t = html.querySelector("span:first-child")!;
+    t.textContent = GenUtil.milliToTime(+data.timeReceived);
+    const m = html.querySelector("span:last-child")!;
+    m.textContent = " - ".concat(data.msg.slice(0, 10)).concat(" ...");
   };
 
   static readonly getInstance = (

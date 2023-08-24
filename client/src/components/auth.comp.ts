@@ -23,11 +23,16 @@ export class AuthComponent extends Component<HTMLDivElement, HTMLElement> {
   private regUsernameInput!: HTMLInputElement;
   private regPasswordInput!: HTMLInputElement;
   private regRePasswordInput!: HTMLInputElement;
+  private regSubmit!: HTMLInputElement;
+
   private signInSpan!: HTMLSpanElement;
   private logForm!: HTMLFormElement;
   private logUsernameInput!: HTMLInputElement;
   private logPasswordInput!: HTMLInputElement;
+  private logSubmit!: HTMLInputElement;
   private signUpSpan!: HTMLSpanElement;
+  private signOn!: HTMLDivElement;
+  private signOnLinks!: HTMLLinkElement[];
 
   private readonly showSignClass = "show-sign-in";
 
@@ -63,6 +68,9 @@ export class AuthComponent extends Component<HTMLDivElement, HTMLElement> {
     this.regRePasswordInput = document.getElementById(
       "reg-rePassword"
     )! as HTMLInputElement;
+    this.regSubmit = this.regForm.querySelector(
+      "input:last-child"
+    )! as HTMLInputElement;
     this.logForm = this.insertedElement.querySelector(
       "#login-form"
     )! as HTMLFormElement;
@@ -72,19 +80,32 @@ export class AuthComponent extends Component<HTMLDivElement, HTMLElement> {
     this.logPasswordInput = document.getElementById(
       "log-password"
     )! as HTMLInputElement;
+    this.logSubmit = this.logForm.querySelector(
+      "input:last-child"
+    )! as HTMLInputElement;
     this.signInSpan = document.querySelector(
       ".auth-register-div p span"
     )! as HTMLSpanElement;
     this.signUpSpan = document.querySelector(
       ".auth-login-div p span"
     )! as HTMLSpanElement;
+    this.signOn = document.querySelector(".auth-signon-div") as HTMLDivElement;
+    this.signOnLinks = [
+      ...document.querySelectorAll(".auth-signon-div a"),
+    ]! as HTMLLinkElement[];
 
     this.signInSpan.addEventListener("click", this.clickSignInSpan);
     this.signUpSpan.addEventListener("click", this.clickSignUpSpan);
     this.regForm.addEventListener("submit", this.submitRegisterFormHandler);
     this.logForm.addEventListener("submit", this.submitLoginFormHandler);
   }
-  renderComponent(): void {}
+  renderComponent(): void {
+    this.logUsernameInput.setAttribute("disabled", "");
+    this.logPasswordInput.setAttribute("disabled", "");
+    this.logSubmit.setAttribute("disabled", "");
+
+    this.signOn.classList.add("hideElement", "invisibleElem");
+  }
 
   // --------------------------
   // ----- EVENT HANDLERS -----
@@ -169,17 +190,27 @@ export class AuthComponent extends Component<HTMLDivElement, HTMLElement> {
       );
     }
 
+    this.disableRegElements();
+    this.disableLogElements();
+
     this.appComp.appUser();
+
     this.clearLoginInput();
   };
   private clickSignInSpan = (e: MouseEvent): void => {
     if (!this.authComps.classList.contains(this.showSignClass)) {
-      this.authComps.classList.add(this.showSignClass);
+      this.showLogForm();
+
+      this.disableRegElements();
+      this.enableLogElements();
     }
   };
   private clickSignUpSpan = (e: MouseEvent): void => {
     if (this.authComps.classList.contains(this.showSignClass)) {
       this.authComps.classList.remove(this.showSignClass);
+
+      this.enableRegElements();
+      this.disableLogElements();
     }
   };
 
@@ -193,6 +224,37 @@ export class AuthComponent extends Component<HTMLDivElement, HTMLElement> {
       rePassword: this.regRePasswordInput.value,
     } as iAuthInputs;
   }
+  public showLogForm = () => {
+    this.authComps.classList.add(this.showSignClass);
+  };
+  public disableRegElements = () => {
+    this.regUsernameInput.setAttribute("disabled", "");
+    this.regPasswordInput.setAttribute("disabled", "");
+    this.regRePasswordInput.setAttribute("disabled", "");
+    this.regSubmit.setAttribute("disabled", "");
+  };
+  public enableRegElements = () => {
+    this.regUsernameInput.removeAttribute("disabled");
+    this.regPasswordInput.removeAttribute("disabled");
+    this.regRePasswordInput.removeAttribute("disabled");
+    this.regSubmit.removeAttribute("disabled");
+  };
+  public disableLogElements = () => {
+    this.logUsernameInput.setAttribute("disabled", "");
+    this.logPasswordInput.setAttribute("disabled", "");
+    this.logSubmit.setAttribute("disabled", "");
+
+    setTimeout(() => {
+      this.signOn.classList.add("hideElement", "invisibleElem");
+    }, 250);
+  };
+  public enableLogElements = () => {
+    this.logUsernameInput.removeAttribute("disabled");
+    this.logPasswordInput.removeAttribute("disabled");
+    this.logSubmit.removeAttribute("disabled");
+
+    this.signOn.classList.remove("hideElement", "invisibleElem");
+  };
   private clearRegisterInput(): void {
     this.regUsernameInput.value = "";
     this.regPasswordInput.value = "";

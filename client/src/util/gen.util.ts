@@ -64,7 +64,7 @@ export class GenUtil {
     const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
     const formattedSeconds = seconds < 10 ? `0${seconds}` : seconds;
 
-    const formattedTime = `${formattedHours}:${formattedMinutes}:${formattedSeconds} ${timePeriod}`;
+    const formattedTime = `${halfDayHrs}:${formattedMinutes}:${formattedSeconds} ${timePeriod}`;
     return formattedTime;
   };
 

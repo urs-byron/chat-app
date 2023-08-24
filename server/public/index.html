@@ -8,7 +8,7 @@
     <title>Wired Chat</title>
     <!-- STYLES -->
     <style>
-      @import url("https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap");
+      @import url("https://fonts.googleapis.com/css2?family=Average+Sans&family=Hind+Madurai:wght@300;400;600&family=Indie+Flower&family=Montserrat:wght@200;400;500&display=swap");
     </style>
     <link rel="icon" type="image/png" href="./img/wired-icon-modified.ico" />
     <script
@@ -242,8 +242,10 @@
     <template id="peer-temp">
       <div class="chat-peer">
         <div class="chat-user-toggle">
-          <i class="fa-solid fa-bars"></i>
-          <h2>Menu</h2>
+          <button>
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <h2>Settings</h2>
         </div>
         <form action="" class="chat-search-form">
           <button class="chat-remove-search">
@@ -256,19 +258,25 @@
         </form>
         <div class="chat-lists-wrap">
           <div class="chat-lists-head">
-            <h2>
+            <h3>
               Search
-              <div class="chat-search-types">
+              <span class="chat-search-types">
                 <button class="chat-search-type-user" data-chat-type="user">
                   users
                 </button>
                 <button class="chat-search-type-group" data-chat-type="group">
                   groups
                 </button>
-              </div>
-            </h2>
-            <h2>Contacts</h2>
+              </span>
+            </h3>
+            <h3>
+              Contacts
+              <span class="chat-peer-actives"
+                ><sub><sup># active users</sup></sub></span
+              >
+            </h3>
           </div>
+          <hr />
           <div class="chat-lists">
             <div class="chat-search-list-wrap">
               <div class="chat-search-list"></div>
@@ -395,8 +403,10 @@
       </div>
     </template>
 
+    <!-- <div class="nav-bar">sample</div> -->
     <div class="chat-app-wrap">
       <div class="chat-app"></div>
     </div>
+    <!-- <footer></footer> -->
   </body>
 </html>

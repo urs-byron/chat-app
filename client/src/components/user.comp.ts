@@ -33,6 +33,7 @@ import {
   httpPutUserPrivacy,
   httpPutUserPassword,
 } from "../hooks/requests.hook";
+import { AuthComponent } from "./auth.comp";
 
 export class UserComponent extends Component<HTMLDivElement, HTMLElement> {
   private static instance: UserComponent | null;
@@ -458,6 +459,12 @@ export class UserComponent extends Component<HTMLDivElement, HTMLElement> {
     SocketMethods.destroy();
     sessionStorage.clear();
     this.appComp.appAuth();
+
+    const authComp = AuthComponent.getInstance();
+    authComp.enableLogElements();
+    authComp.disableRegElements();
+    authComp.showLogForm();
+
     this.deleteUserComponents();
   };
 

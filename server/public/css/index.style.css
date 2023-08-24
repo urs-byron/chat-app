@@ -1,4 +1,14 @@
 /* ------------------------------------- */
+/* --------------- GUIDE --------------- */
+/* ------------------------------------- */
+/* 
+font-family: 'Indie Flower', cursive;
+font-family: 'Montserrat', sans-serif;
+font-family: 'Average Sans', sans-serif;
+font-family: 'Hind Madurai', sans-serif;
+*/
+
+/* ------------------------------------- */
 /* -------------- GENERAL -------------- */
 /* ------------------------------------- */
 * {
@@ -11,41 +21,19 @@ a {
   text-decoration: none;
 }
 
-input:focus,
+/* input:focus,
 select:focus,
 textarea:focus,
 button:focus {
   outline: none;
-}
+} */
 
 :root {
   --gen-app-h: 100vh;
   --gen-head-height: 50px;
   --gen-menu-gap: 0.5rem;
   --gen-transition: all 0.25s ease;
-}
-.hideElement {
-  display: none;
-}
-.invisibleElem {
-  opacity: 0;
-}
-.fadeIn {
-  animation: fadeInAnim 5s linear 0s 1;
-}
-@keyframes fadeInAnim {
-  0% {
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-  }
-  90% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
+  --gen-comp-box-sh: 0px 0px 3.5px 0px rgba(0, 0, 0, 0.75);
 }
 
 /* ------------------------------------- */
@@ -56,7 +44,7 @@ button:focus {
   height: var(--gen-app-h);
   width: 100vw;
 
-  background: linear-gradient(blue 0 0);
+  background: linear-gradient(rgb(249, 249, 255) 0 0);
 
   font-family: "Indie Flower", cursive;
 }
@@ -66,6 +54,8 @@ button:focus {
   left: -100%;
 
   position: relative;
+
+  transition: var(--gen-transition);
 }
 .chat-app-user-state {
   left: 0;
@@ -97,7 +87,10 @@ button:focus {
 
   height: auto;
   width: var(--auth-comps-wrap-w);
-  border-radius: 5px;
+  border-radius: 10px;
+
+  box-shadow: 0px 0px 10px 2px rgba(255, 255, 255, 1),
+    0px 0px 20px 10px rgba(0, 0, 0, 1);
 
   overflow: hidden;
 }
@@ -122,9 +115,6 @@ button:focus {
   --auth-banner-left: 0rem;
 
   left: calc(calc(var(--auth-comps-w) - var(--auth-comps-wrap-w)) * -1);
-  /* left: calc(
-    calc(calc(var(--auth-comps-wrap-w) - var(--auth-forms-w)) - 1rem) * -1
-  ); */
 }
 
 .auth-banners {
@@ -173,12 +163,14 @@ button:focus {
   width: 100%;
   border: 0px solid transparent;
   border-radius: 4px;
+  padding: 0 1rem;
 
   font-family: "Indie Flower", cursive;
 }
 .auth-comp input:last-child {
   background: linear-gradient(#f176ff 0 0);
   color: white;
+  cursor: pointer;
 }
 .auth-register-div,
 .auth-login-div {
@@ -367,9 +359,22 @@ button:focus {
 /* ------------------------------------- */
 /* ------------ USER TOGGLE ------------ */
 .chat-user-toggle {
+  padding: 0.5rem;
+
   display: grid;
   grid-template-columns: 40px auto;
-  align-items: center;
+  grid-template-rows: 1fr;
+  align-content: center;
+  column-gap: 20px;
+}
+.chat-user-toggle button {
+  border: none;
+  border-radius: 7.5px;
+  box-shadow: var(--gen-comp-box-sh);
+  background: linear-gradient(#f176ff 0 0);
+
+  text-align: center;
+  color: white;
 }
 
 /* ------------------------------------- */
@@ -379,18 +384,37 @@ button:focus {
   height: var(--gen-app-h);
   padding: 1rem 1rem 0 1rem;
   display: grid;
-  grid-template-rows: var(--gen-head-height) 30px 1fr;
+  grid-template-rows: var(--gen-head-height) 50px 1fr;
 }
 /* ------------------------------------- */
 /* ----------- SEARCH SECTION ---------- */
 .chat-search-form {
+  padding: 0.5rem;
+
   display: grid;
-  grid-template-columns: 0 auto 30px;
+  grid-template-columns: 0 auto 40px;
 
   transition: var(--gen-transition);
 }
+.chat-search-form > * {
+  border: none;
+  border-radius: 5px;
+  box-shadow: var(--gen-comp-box-sh);
+}
+.chat-search-form button {
+  background: linear-gradient(#f176ff 0 0);
+  color: white;
+}
+.chat-search-form input {
+  padding: 0 0.5rem;
+
+  font-family: "Indie Flower", cursive;
+}
+.chat-search-form button:last-child {
+  margin-left: 10px;
+}
 .chat-search-form-search-state {
-  grid-template-columns: 30px auto 30px;
+  grid-template-columns: 30px auto 40px;
 }
 
 /* ------------------------------------- */
@@ -398,9 +422,16 @@ button:focus {
 .chat-lists-wrap {
   overflow: hidden;
 }
+/* ------------ SEARCH HEAD ----------- */
+/* ----------- CONTACTS HEAD ---------- */
+
 .chat-lists-head {
+  padding: 0.5rem;
+
   display: grid;
   grid-template-columns: 100% 100%;
+  grid-template-rows: 50px;
+  column-gap: 1rem;
 
   position: relative;
   left: -100%;
@@ -408,13 +439,59 @@ button:focus {
 
   transition: var(--gen-transition);
 }
+
+.chat-lists-head h3 {
+  border-radius: 7.5px;
+  padding: 0.5rem;
+
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: space-between;
+  align-content: center;
+
+  background: linear-gradient(white 0 0);
+  box-shadow: var(--gen-comp-box-sh);
+
+  font-weight: bold;
+}
+
 .chat-search-types {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, 55px);
+  column-gap: 0.5rem;
 
   text-transform: capitalize;
   text-align: center;
 }
+
+.chat-search-types * {
+  border: none;
+  border-radius: 10px;
+
+  background: linear-gradient(#f176ff 0 0);
+
+  opacity: 0.5;
+
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  align-items: center;
+
+  font-family: "Indie Flower", cursive;
+
+  font-size: 12.5px;
+  color: white;
+
+  cursor: pointer;
+
+  transition: var(--gen-transition);
+}
+
+.chat-search-type {
+  opacity: 1;
+  color: black;
+}
+
 .chat-lists {
   height: calc(100% - 28px);
   display: grid;
@@ -437,29 +514,64 @@ button:focus {
   overflow-y: scroll;
 }
 
-.chat-search-type {
-  background: linear-gradient(black 0 0);
-  color: white;
-}
-
 .chat-search-list,
 .chat-contact-list {
-  padding: 1rem 0.7rem 0 0.3rem;
   height: 100%;
+
+  border-radius: 5px;
+  padding: 0.35rem 1rem 1rem 1rem;
 }
 
 /* ------------ SEARCH ITEM ----------- */
 /* ----------- CONTACTS ITEM ---------- */
+.chat-search-item {
+  padding: 0.75rem;
+}
 .chat-contact-item,
 .chat-search-item {
   padding: 0.35rem;
-  border: 1px solid black;
-  border-radius: 5px;
+  border-radius: 7.5px;
   margin: 0.35rem 0;
+
+  background: linear-gradient(white 0 0);
+  box-shadow: var(--gen-comp-box-sh);
 }
 .chat-contact-item {
   display: grid;
-  grid-template-columns: 0.9fr 0.1fr;
+  /* EDIT */
+  grid-template-columns: 0.2fr 0.7fr 0.1fr;
+  column-gap: 10px;
+}
+.chat-contact-icon {
+  border-radius: 50% 50%;
+  background: linear-gradient(#f176ff 0 0);
+
+  display: grid;
+  align-content: center;
+
+  font-family: "Average Sans", sans-serif;
+
+  font-weight: bold;
+  font-size: 20px;
+  text-align: center;
+  text-transform: capitalize;
+  color: white;
+}
+.chat-contact-info p {
+  display: grid;
+  grid-template-columns: 0.45fr 0.55fr;
+  column-gap: 5px;
+
+  font-size: 12.5px;
+}
+.chat-contact-info p span:first-child {
+  border-radius: 7.5px;
+
+  background: linear-gradient(rgb(186, 186, 186) 0 0);
+
+  color: white;
+  text-align: center;
+  font-family: "Hind Madurai", sans-serif;
 }
 .chat-contact-tooltip {
   display: grid;
@@ -836,4 +948,28 @@ button:focus {
   margin: 0.25rem 0;
 
   text-align: center;
+}
+
+.hideElement {
+  display: none;
+}
+.invisibleElem {
+  opacity: 0;
+}
+.fadeIn {
+  animation: fadeInAnim 5s linear 0s 1;
+}
+@keyframes fadeInAnim {
+  0% {
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
