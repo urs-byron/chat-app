@@ -6,15 +6,19 @@ import { AppComponent } from "./app.comp";
 import { iHttpResponse } from "../models/http.model";
 import { iValidityType } from "../models/validity.model";
 import { GenUtil as Gen } from "../util/gen.util";
-import { ErrorComponent as error } from "./error.comp";
+import { ErrorComponent, ErrorComponent as error } from "./error.comp";
 import { httpPostLogin, httpPostRegister } from "../hooks/requests.hook";
 
+/**
+ * Controls processes related to the auth component
+ * @extends Component
+ */
 export class AuthComponent extends Component<HTMLDivElement, HTMLElement> {
-  static instance: AuthComponent;
+  private static instance: AuthComponent;
 
   private appComp: AppComponent = AppComponent.getInstance();
-  static authWrap: HTMLDivElement;
-  static authLoader: HTMLDivElement;
+  private static authWrap: HTMLDivElement;
+  private static authLoader: HTMLDivElement;
   private authComps!: HTMLDivElement;
   private authRegisterComp!: HTMLDivElement;
   private authLoginComp!: HTMLDivElement;
@@ -34,7 +38,7 @@ export class AuthComponent extends Component<HTMLDivElement, HTMLElement> {
   private signOn!: HTMLDivElement;
   private signOnLinks!: HTMLLinkElement[];
 
-  private readonly showSignClass = "show-sign-in";
+  private readonly showSignClass: string = "show-sign-in";
 
   private constructor() {
     super(".chat-app", "auth-temp", "afterbegin");
@@ -99,6 +103,7 @@ export class AuthComponent extends Component<HTMLDivElement, HTMLElement> {
     this.regForm.addEventListener("submit", this.submitRegisterFormHandler);
     this.logForm.addEventListener("submit", this.submitLoginFormHandler);
   }
+
   renderComponent(): void {
     this.logUsernameInput.setAttribute("disabled", "");
     this.logPasswordInput.setAttribute("disabled", "");
@@ -107,17 +112,30 @@ export class AuthComponent extends Component<HTMLDivElement, HTMLElement> {
     this.signOn.classList.add("hideElement", "invisibleElem");
   }
 
-  // --------------------------
-  // ----- EVENT HANDLERS -----
-  // --------------------------
-  private submitRegisterFormHandler = async (e: Event): Promise<void> => {
+  /** EVENT LISTENERS */
+
+  /**
+   * - This function submits user registration data.
+   *
+   * @param {SubmitEvent} e
+   * @returns {Promise<void>}
+   *
+   * @listens SubmitEvent
+   */
+  private submitRegisterFormHandler = async (e: SubmitEvent): Promise<void> => {
     e.preventDefault();
 
-    // DATA GATHERING
+    /** DATA GATHERING
+     * - Gathers request body data.
+     */
     const regInputs: iAuthInputs = this.getRegisterInput();
-    const regValid: iValidityType = Validate.registerForm(regInputs);
 
-    // VALIDATION
+    /** VALIDATION
+     * - Immediately returns & instructs UI to show exception upon invalid gathered data.
+     */
+
+    /** @constant @type {iValidityType} */
+    const regValid: iValidityType = Validate.registerForm(regInputs);
     if (!regValid.isValid) {
       return error.showComp(
         "ERROR: submitted registration data is invalid",
@@ -125,7 +143,10 @@ export class AuthComponent extends Component<HTMLDivElement, HTMLElement> {
       );
     }
 
-    // HTTP REQUEST
+    /** HTTP REQUEST
+     * - Requests an HTTP POST to the server.
+     * - Immediately returns & instructs UI to show exception upon logic error.
+     */
     let response!: iHttpResponse;
     try {
       response = await tryCatch(httpPostRegister, regInputs);
@@ -136,7 +157,10 @@ export class AuthComponent extends Component<HTMLDivElement, HTMLElement> {
       );
     }
 
-    // VALIDATION: HTTP RESPONSE
+    /**
+     * VALIDATION: HTTP RESPONSE
+     * - Immediately returns & instructs UI to show exception upon >= 400 status code.
+     */
     const resValid = Validate.httpRes(
       response,
       "server is unable to process request for registration",
@@ -144,16 +168,30 @@ export class AuthComponent extends Component<HTMLDivElement, HTMLElement> {
     );
     if (!resValid) return;
 
+    /** PROCESS */
     this.clearRegisterInput();
   };
-  private submitLoginFormHandler = async (e: Event): Promise<void> => {
+
+  /**
+   * - This function submits user credentials for sign-in.
+   *
+   * @param {SubmitEvent} e
+   * @returns {Promise<void>}
+   *
+   * @listens SubmitEvent
+   */
+  private submitLoginFormHandler = async (e: SubmitEvent): Promise<void> => {
     e.preventDefault();
 
-    // DATA GATHERING
+    /** DATA GATHERING
+     * - Gathers request body data.
+     */
     const loginInputs: iAuthInputs = this.getLoginInput();
-    const loginValid: iValidityType = Validate.loginForm(loginInputs);
 
-    // VALIDATION
+    /** VALIDATION
+     * - Immediately returns and & instructs UI to show exception upon invalid data.
+     */
+    const loginValid: iValidityType = Validate.loginForm(loginInputs);
     if (!loginValid.isValid) {
       return error.showComp(
         `ERROR: submitted login data is invalid`,
@@ -161,7 +199,10 @@ export class AuthComponent extends Component<HTMLDivElement, HTMLElement> {
       );
     }
 
-    // HTTP REQUEST
+    /** HTTP REQUEST
+     * - Requests an HTTP POST to the server including user credentials.
+     * - Immediately returns and instructs UI to show exception upon logic error.
+     */
     let response!: iHttpResponse;
     try {
       response = await tryCatch(httpPostLogin, loginInputs);
@@ -172,7 +213,9 @@ export class AuthComponent extends Component<HTMLDivElement, HTMLElement> {
       );
     }
 
-    // VALIDATION: HTTP RESPONSE
+    /** VALIDATION: HTTP RESPONSE
+     * - Immediately returns and instructs UI to show exception upon >= 400 status code
+     */
     const resValid = Validate.httpRes(
       response,
       "server is unable to process client's request for login",
@@ -180,23 +223,27 @@ export class AuthComponent extends Component<HTMLDivElement, HTMLElement> {
     );
     if (!resValid) return;
 
-    // PROCESS
-    try {
-      await Gen.logUser();
-    } catch (err) {
-      return error.showComp(
-        `ERROR: client is unable to display user information`,
-        err
-      );
-    }
+    /** HTTP REQUEST
+     * - Requests an HTTP GET to the server for authentication
+     * - Immediately returns upon unsuccessful sign-in
+     */
+    const logSuccess = await Gen.logUser();
+    if (!logSuccess) return;
 
+    /** PROCESS */
     this.disableRegElements();
     this.disableLogElements();
-
     this.appComp.appUser();
-
     this.clearLoginInput();
   };
+
+  /**
+   * - This function displays the login form within the auth component upon a click of a certain span element.
+   *
+   * @param {MouseEvent} e
+   *
+   * @listens MouseEvent
+   */
   private clickSignInSpan = (e: MouseEvent): void => {
     if (!this.authComps.classList.contains(this.showSignClass)) {
       this.showLogForm();
@@ -205,6 +252,14 @@ export class AuthComponent extends Component<HTMLDivElement, HTMLElement> {
       this.enableLogElements();
     }
   };
+
+  /**
+   * - This function displays the registration form within the auth component upon a click of a certain span element.
+   *
+   * @param {MouseEvent} e
+   *
+   * @listens MouseEvent
+   */
   private clickSignUpSpan = (e: MouseEvent): void => {
     if (this.authComps.classList.contains(this.showSignClass)) {
       this.authComps.classList.remove(this.showSignClass);
@@ -217,6 +272,12 @@ export class AuthComponent extends Component<HTMLDivElement, HTMLElement> {
   // --------------------------
   // ----- CLASS UTILITY ------
   // --------------------------
+
+  /**
+   * - This function returns all the input values from the register form input elements.
+   *
+   * @returns {iAuthInputs}
+   */
   private getRegisterInput(): iAuthInputs {
     return {
       username: this.regUsernameInput.value,
@@ -224,22 +285,34 @@ export class AuthComponent extends Component<HTMLDivElement, HTMLElement> {
       rePassword: this.regRePasswordInput.value,
     } as iAuthInputs;
   }
-  public showLogForm = () => {
+
+  /**  This function moves AuthComps to display sign-in form. */
+  public showLogForm = (): void => {
     this.authComps.classList.add(this.showSignClass);
   };
+
+  /** - This function assigns disable HTML attribute to all of register form's input elements. */
   public disableRegElements = () => {
     this.regUsernameInput.setAttribute("disabled", "");
     this.regPasswordInput.setAttribute("disabled", "");
     this.regRePasswordInput.setAttribute("disabled", "");
     this.regSubmit.setAttribute("disabled", "");
   };
-  public enableRegElements = () => {
+
+  /** - This function removes disable HTML attribute to all of register form's input elements. */
+  public enableRegElements = (): void => {
     this.regUsernameInput.removeAttribute("disabled");
     this.regPasswordInput.removeAttribute("disabled");
     this.regRePasswordInput.removeAttribute("disabled");
     this.regSubmit.removeAttribute("disabled");
   };
-  public disableLogElements = () => {
+
+  /**
+   * This function hides elements of the login form
+   * - Assigns disable HTML attribute to all of login form's input elements.
+   * - Hides all of login form's sign-on button elements.
+   * */
+  public disableLogElements = (): void => {
     this.logUsernameInput.setAttribute("disabled", "");
     this.logPasswordInput.setAttribute("disabled", "");
     this.logSubmit.setAttribute("disabled", "");
@@ -248,41 +321,79 @@ export class AuthComponent extends Component<HTMLDivElement, HTMLElement> {
       this.signOn.classList.add("hideElement", "invisibleElem");
     }, 250);
   };
-  public enableLogElements = () => {
+
+  /**
+   * This function assures visibility to elements of the login form
+   * - Removes disable HTML attribute to all of login form's input elements.
+   * - Remove non-displaying styles to all of login form's sign-on button elements.
+   * */
+  public enableLogElements = (): void => {
     this.logUsernameInput.removeAttribute("disabled");
     this.logPasswordInput.removeAttribute("disabled");
     this.logSubmit.removeAttribute("disabled");
 
     this.signOn.classList.remove("hideElement", "invisibleElem");
   };
+
+  /** - Clear used register input tag values. */
   private clearRegisterInput(): void {
     this.regUsernameInput.value = "";
     this.regPasswordInput.value = "";
     this.regRePasswordInput.value = "";
   }
+
+  /**
+   * - Returns all the input values from the login form input elements.
+   *
+   * @returns {iAuthInputs}
+   */
   private getLoginInput(): iAuthInputs {
     return {
       username: this.logUsernameInput.value,
       password: this.logPasswordInput.value,
     } as iAuthInputs;
   }
+
+  /** - Clear used login input tag values. */
   private clearLoginInput(): void {
     this.logUsernameInput.value = "";
     this.logPasswordInput.value = "";
   }
 
+  /**
+   * This function assures visibility of auth component by hiding auth component loader.
+   * @static
+   */
   static showComp(): void {
     this.authLoader.classList.add("hideElement");
     this.authWrap.classList.remove("hideElement");
   }
+
+  /**
+   * This function hides both auth component & auth component loader gif.
+   * @static
+   *  */
   static hideComp(): void {
     this.authLoader.classList.add("hideElement");
     this.authWrap.classList.add("hideElement");
   }
+
+  /**
+   * This function assures visibility of auth component loader by hiding the auth component.
+   * @static
+   */
   static loadingComp(): void {
     this.authLoader.classList.remove("hideElement");
     this.authWrap.classList.add("hideElement");
   }
+
+  /**
+   * Returns either a new or the old instance of the component
+   *
+   * @returns {AuthComponent}
+   *
+   * @static
+   */
   static readonly getInstance = (): AuthComponent => {
     if (!this.instance) this.instance = new AuthComponent();
     return this.instance;

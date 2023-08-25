@@ -43,7 +43,7 @@ export const getAuth: RequestHandler = async (req, res, next) => {
 
   // FURTHER: cache user item
   const tx = await txRedisUser(userId, user as iUserDoc);
-  if (tx instanceof APIError || tx instanceof Error) return next(user);
+  if (tx instanceof APIError || tx instanceof Error) return next(tx);
 
   // RESPONSE
   return res.status(200).json(resOK);

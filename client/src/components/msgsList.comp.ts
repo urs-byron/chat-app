@@ -227,6 +227,7 @@ export class MessagesListComponent extends Component<
   // --------------------------
   private clickMsgOptsBtnHandler = (e: Event): void => {
     this.chatMsgModal.classList.toggle("chat-msg-group-modal-show-state");
+    GroupComponent.emptyRequestStack();
   };
   private clickMsgBtnRequestHandler = (e: Event): void => {
     const reqBody: iRequestBody = MessagesListComponent.createRequestBody(

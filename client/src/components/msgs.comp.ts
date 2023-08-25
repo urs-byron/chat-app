@@ -1,7 +1,15 @@
+import { iChatType } from "../models/gen.model";
 import { Component } from "./base.comp";
 import { MessagesListComponent } from "./msgsList.comp";
 import { MessagesOptionsComponent } from "./msgsOpts.comp";
 
+/**
+ * This class holds functions related to modifying class instances and UI interface of:
+ * - MessagesListComponent
+ * - MessagesOptionsComponent
+ *
+ * @extends Component
+ */
 export class MessagesComponent extends Component<HTMLDivElement, HTMLElement> {
   static instance: MessagesComponent | null;
 
@@ -11,8 +19,8 @@ export class MessagesComponent extends Component<HTMLDivElement, HTMLElement> {
 
   // COMPONENT ELEMENTS
   static chatMsgs: HTMLDivElement;
-  static readonly chatMsgUserClass = "chat-msgs-user";
-  static readonly chatMsgGroupClass = "chat-msgs-group";
+  static readonly chatMsgUserClass: string = "chat-msgs-user";
+  static readonly chatMsgGroupClass: string = "chat-msgs-group";
 
   private constructor() {
     super(".chat-msgs-wrap", "msgs-temp", "afterbegin");
@@ -28,24 +36,43 @@ export class MessagesComponent extends Component<HTMLDivElement, HTMLElement> {
   // --------------------------
   // ----- CLASS UTILITY ------
   // --------------------------
+
+  /**
+   * This function controls whether MessagesComponent either:
+   * - call a new class for a new user message component
+   * - delete class and corresponding HTML elements
+   *
+   * @param { string } userId - account id of the client logged in
+   * @param { string } peerId - account id of the user's target connected peer
+   * @param { string } peerName - account name of the user's target connected peer
+   * @param { string } chatId - chat id between the user & peer | group
+   * @param { boolean } availability -  availability setting of the user target
+   * @param { iChatType } type - chat type of the user's target
+   * @param { boolean } deleteInstance - flag indicating if the message comp will be deleted
+   * @param { boolean } fromPeer - flag indicating if the user target is from the peer list
+   *
+   * @returns { MessagesComponent | null }
+   *
+   * @static
+   */
   static readonly getInstance = (
     userId: string,
     peerId: string,
     peerName: string,
     chatId: string,
     availability: boolean,
-    type: "user" | "group",
+    type: iChatType,
     deleteInstance: boolean,
     fromPeer: boolean
   ): MessagesComponent | null => {
-    // if constructor is called for creating class component
+    // if static function is called for creating new class components
     if (!deleteInstance) {
-      // if no messageComponent exists, create a new one
-
       if (!this.instance) {
+        // if no messageComponent exists, create a new one
         this.instance = new MessagesComponent();
         this.chatMsgs = document.querySelector(".chat-msgs")! as HTMLDivElement;
 
+        // set message component chat type
         type === "user"
           ? MessagesComponent.chatMsgs.classList.add(
               MessagesComponent.chatMsgUserClass
@@ -77,8 +104,10 @@ export class MessagesComponent extends Component<HTMLDivElement, HTMLElement> {
           true
         );
 
+        // delete message component HTML
         this.chatMsgs.innerHTML = "";
 
+        // replace message component chat type
         type === "user"
           ? MessagesComponent.chatMsgs.classList.replace(
               MessagesComponent.chatMsgGroupClass,
@@ -117,7 +146,25 @@ export class MessagesComponent extends Component<HTMLDivElement, HTMLElement> {
     return this.instance;
   };
 
-  static readonly getMsgsInstance = (
+  /**
+   * This function controls whether MessagesListComponent & MessagesOptionsComponent will:
+   * - creates a new class for a new user message component
+   * - delete class and corresponding HTML elements
+   *
+   * @param { string } userId - account id of the client logged in
+   * @param { string } peerId - account id of the user's target connected peer
+   * @param { string } peerName - account name of the user's target connected peer
+   * @param { string } chatId - chat id between the user & peer | group
+   * @param { boolean } availability -  availability setting of the user target
+   * @param { iChatType } type - chat type of the user's target
+   * @param { boolean } fromPeer - flag indicating if the user target is from the peer list
+   * @param { boolean } deleteInstance - flag indicating if the message comp will be deleted
+   *
+   * @returns { MessagesComponent | null }
+   *
+   * @static
+   */
+  private static readonly getMsgsInstance = (
     userId: string,
     peerId: string,
     peerName: string,

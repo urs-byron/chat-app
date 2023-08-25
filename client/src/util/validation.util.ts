@@ -140,6 +140,69 @@ export class Validate {
 
     return this.setValidity(validity);
   };
+  static readonly requestBody = (reqBody: iRequestBody): iValidityType => {
+    const { type, recipientId, groupId } = reqBody;
+    let validity: Array<null | string> = [
+      type === 1 || type === 2 || type === 3
+        ? null
+        : "Request type can only be 1, 2, or 3",
+    ];
+
+    if (type !== 2) {
+      validity.push(
+        typeof recipientId === "string" && recipientId.length > 0
+          ? null
+          : "Group to User Request required Recipient ID"
+      );
+    } else {
+      validity.push(
+        !recipientId ? null : "User to Group request must not have Recipient ID"
+      );
+    }
+    if (type !== 1) {
+      validity.push(
+        typeof groupId === "string" && groupId.length > 0
+          ? null
+          : "User to Group Request required Group ID"
+      );
+    } else {
+      validity.push(
+        !groupId ? null : "User to User request must not have group ID"
+      );
+    }
+
+    // UPDATE: TRANSITION ABANDONED
+    // REASON: !"" IS a truthy value, meaning, "" is falsy
+    // TRANSITION TO CODE BELOW UPON FURTHER TESTING
+    // if (type !== 2) {
+    //   validity.push(
+    //     typeof recipientId === "string" && recipientId.length > 0
+    //       ? null
+    //       : "Group to User Request required Recipient ID"
+    //   );
+    // } else {
+    //   validity.push(
+    //     typeof recipientId === "string" && recipientId.length === 0
+    //       ? null
+    //       : "User to Group request must not have Recipient ID"
+    //   );
+    // }
+    // if (type !== 1) {
+    //   validity.push(
+    //     typeof groupId === "string" && groupId.length > 0
+    //       ? null
+    //       : "User to Group Request required Group ID"
+    //   );
+    // } else {
+    //   validity.push(
+    //     typeof groupId === "string" && groupId.length === 0
+    //       ? null
+    //       : "User to User request must not have group ID"
+    //   );
+    // }
+
+    return this.setValidity(validity);
+  };
   static readonly requestItem = (
     item: iRequest,
     wrapper: HTMLDivElement,

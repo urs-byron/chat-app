@@ -7,6 +7,7 @@ import { UserComponent } from "../components/user.comp";
 import { PeerComponent } from "../components/peer.comp";
 import { ErrorComponent } from "../components/error.comp";
 import { iRelation, iRequest } from "../models/user.model";
+import { Validate } from "./validation.util";
 
 export class GenUtil {
   private static inst: GenUtil;
@@ -49,9 +50,21 @@ export class GenUtil {
     return obj;
   };
 
+  /**
+   * Transforms a number into formatted time.
+   *
+   * @param {number} milliseconds - Date in milliseconds.
+   * @returns {string} - Formatted Date e.g. 6:21:50 AM | 12:01:00 PM
+   *
+   * @example
+   * GenUtil.milliToTime(1692946408844); // Returns '2:53:28 PM'
+   */
   static readonly milliToTime: (milliseconds: number) => string = (
     milliseconds
   ) => {
+    /** Data Gathering
+     * - Transforms millisecond into hours, minutes, & seconds.
+     */
     const date = new Date(milliseconds);
     const hours = date.getHours();
     const minutes = date.getMinutes();
@@ -68,43 +81,70 @@ export class GenUtil {
     return formattedTime;
   };
 
-  static readonly logUser = async (e?: Event): Promise<void> => {
+  /**
+   * - This function requests the server to authenticate a client if it has the credentials of a user.
+   *
+   * @param {Event} [e]
+   * @returns {Promise<boolean>}
+   *
+   * @listens load
+   */
+  static readonly logUser = async (e?: Event): Promise<boolean> => {
+    /** DATA GATHERING
+     * - Prepares chat application component.
+     */
     const appComp = AppComponent.getInstance();
-    let response!: iHttpResponse;
 
+    /** HTTP REQUEST
+     * - Requests an HTTP GET to the server for authentication.
+     * - Immediately returns and instructs UI to show exception upon logic error.
+     *
+     * @example
+     * - With credentials.
+     * await tryCatch(httpGetAuth); // Object { err: null, data: {...} }
+     * - Without credentials.
+     * await tryCatch(httpGetAuth); // Object { err: null, data: {} }
+     * - Invalid credentials.
+     * await tryCatch(httpGetAuth); // Object { err: {...}, data: null }
+     */
+    let response!: iHttpResponse;
     try {
       response = await tryCatch(httpGetAuth);
-
-      if (response.data) {
-        if (response.data.statusCode >= 200 && response.data.statusCode < 400) {
-          // INSTANTIATE COMPONENTS
-          PeerComponent.getInstance(false, response.data.data);
-          UserComponent.getInstance(false);
-
-          // EDIT
-          appComp.appUser();
-
-          SocketMethods.init();
-        } else {
-          appComp.appAuth();
-          ErrorComponent.showComp(
-            "ERROR: server responded with an error from client's authentication",
-            JSON.stringify(response.data.data)
-          );
-          return;
-        }
-      } else {
-        ErrorComponent.showComp(
-          "ERROR: upon user's request for authentication"
-        );
-        return;
-      }
     } catch (err) {
-      console.error("ERROR: client is unable to request for authentication");
-      console.error(err);
+      ErrorComponent.showComp(
+        "ERROR: client is unable to request for authentication",
+        err
+      );
+      return false;
     }
+
+    /**
+     * VALIDATION: HTTP RESPONSE
+     * - Immediately returns upon invalid response.
+     */
+    if (
+      (response.err !== null && response.err !== undefined) ||
+      !("statusCode" in response.data)
+    ) {
+      appComp.appAuth();
+      return false;
+    }
+
+    /** - Create instances of required initial components */
+    PeerComponent.getInstance(false, response.data.data);
+    UserComponent.getInstance(false);
+
+    appComp.appUser();
+
+    SocketMethods.init();
+
+    return true;
   };
 
+  /**
+   * Returns an instance of the GenUtil class.
+   * @returns {GenUtil}
+   */
   static readonly getInst: () => GenUtil = (): GenUtil => {
     if (!this.inst) this.inst = new GenUtil();
     return this.inst;

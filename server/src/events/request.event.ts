@@ -1,15 +1,14 @@
 import { Group } from "../models/group.model";
 import { Socket } from "socket.io";
-import { iGroup, iGroupDoc } from "../models/group.imodel";
 import { ChatMethods } from "../data/chat.data";
 import { GeneralMethods } from "../data/misc.data";
 import { User, chatType } from "../models/user.model";
 import { ValidateMethods } from "../util/validate.util";
 import { iUser, iUserDoc } from "../models/user.imodel";
-import { UpdateWriteOpResult } from "mongoose";
-import { RedisMethods, RedisMethods as redis } from "../services/redis.srvcs";
+import { iGroup, iGroupDoc } from "../models/group.imodel";
 import { APIError, newApiError } from "../global/httpErrors.global";
 import { SocketMethods as socket } from "../services/socket.srvcs";
+import { RedisMethods, RedisMethods as redis } from "../services/redis.srvcs";
 import {
   GenRelations,
   GenRequests,
@@ -28,8 +27,6 @@ import {
   iGenRequests,
   iGenRelationsDoc,
 } from "../models/gen.imodel";
-import { RedisFlushModes } from "redis";
-import cookieSession from "cookie-session";
 
 /*
 // URGENT

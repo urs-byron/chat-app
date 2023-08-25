@@ -1,11 +1,19 @@
-// export abstract class generic
 export abstract class Component<T extends HTMLElement, U extends HTMLElement> {
-  // --- class variables declaration
   protected wrapperElement: T;
   protected templateElement: HTMLTemplateElement;
   protected insertedElement: U;
 
-  // --- constructor parameters
+  /**
+   * This constructor, upon instantiating, attaches a temlate HTML element within wrapper element
+   *
+   * @param {string} wrapperClass - class of the soon container of the template element
+   * @param {string} templateId - id of the template element
+   * @param {string} insertedPosition - position within the wrapperElement where the template will be inserted
+   * @param {string} [insertedId] - assigns id to the insertedElement if not null | undefined
+   *
+   * @constructor
+   * @abstract
+   */
   constructor(
     wrapperClass: string,
     templateId: string,
@@ -31,13 +39,20 @@ export abstract class Component<T extends HTMLElement, U extends HTMLElement> {
     this.attachElement(insertedPosition);
   }
 
+  /**
+   * This function inserts the template element within the wrapper element depending on the position.
+   * @param {string} position
+   */
   attachElement(position: string) {
     this.wrapperElement.insertAdjacentElement(
       position as InsertPosition,
       this.insertedElement
     );
   }
-  // --- abstract methods
-  abstract renderComponent(...args: any[]): void;
+
+  /** This function configures class related variables and event listeners. */
   abstract configureComponent(...args: any[]): void;
+
+  /** This function configures initial elements and styling configuration. */
+  abstract renderComponent(...args: any[]): void;
 }
