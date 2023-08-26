@@ -491,7 +491,7 @@ export class MessagesOptionsComponent extends Component<
   }
 
   /**
-   * This function deletes a corresponding HTML element of amessage option comp request.
+   * This function deletes a corresponding HTML element of a message option comp request.
    *
    * @param { string } requestItemId
    * @param { string } chatId

@@ -24,6 +24,7 @@ import {
   iRequestApproveData,
 } from "../models/user.model";
 
+/** This class holds a range of input validation methods used throughout the client code. */
 export class Validate {
   static instance: Validate | null;
 
@@ -386,6 +387,19 @@ export class Validate {
   };
 
   // HTTP RESPONSE VALIDATION
+  /**
+   * This is a special validation function for HTTP Responses from tryCatch()
+   * - inspects HTTP responses for signs of error
+   * - instructs error component to activate upon hint of error
+   *
+   * @param { iHttpResponse } res - HTTP Response from tryCatch
+   * @param { string } unknownErr - an uncatched server error occured
+   * @param { string } knownErr - an catched server error occured
+   *
+   * @returns { boolean }
+   *
+   * @static
+   */
   static httpRes(
     res: iHttpResponse,
     unknownErr: string,
@@ -404,6 +418,11 @@ export class Validate {
     return true;
   }
 
+  /**
+   * This function returns a new or old instance of this function.
+   *
+   * @returns { Validate }
+   */
   static readonly getInstance = (): Validate => {
     if (!this.instance) this.instance = new Validate();
     return this.instance;

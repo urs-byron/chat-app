@@ -1,3 +1,11 @@
+/**
+ * This function is an asynchronous wrapper for HTTP requesting functions which returns a transformed HTTP response object for error management.
+ *
+ * @param { Function } fx - an asynchronous function
+ * @param { any[] } [params] - optional parameter(s)
+ *
+ * @returns { Promise<{ err: any; data: any }> }
+ */
 export async function tryCatch(
   fx: Function,
   ...params: any[]
@@ -17,7 +25,6 @@ export async function tryCatch(
       return { err: null, data };
     }
   } catch (err) {
-    console.error(err);
     return { err, data: null };
   }
 }

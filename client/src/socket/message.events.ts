@@ -3,11 +3,20 @@ import { iRelation } from "../models/user.model";
 import { PeerComponent } from "../components/peer.comp";
 import { MessagesListComponent } from "../components/msgsList.comp";
 
+/** This class holds functions which manages Message List HTML & Data, and Peer Component HTML Update.*/
 export class MessageEvent {
   private static inst: MessageEvent;
 
   private constructor() {}
 
+  /**
+   * This function entails the occuring logic when a message is received.
+   * - message list HTML update
+   * - peer list HTML update
+   * - message list data update
+   *
+   * @param { iMsgBody } data - message received from socket
+   */
   static readonly postMessageR = (data: iMsgBody): void => {
     MessagesListComponent.createMsgItem(
       data,
@@ -32,6 +41,13 @@ export class MessageEvent {
     );
   };
 
+  /**
+   * This function returns a new or the first instance of the class.
+   *
+   * @returns { MessageEvent }
+   *
+   * @static
+   */
   static readonly getInst = (): MessageEvent => {
     if (!this.inst) this.inst = new MessageEvent();
     return this.inst;

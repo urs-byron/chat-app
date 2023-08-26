@@ -2,8 +2,8 @@ import { Socket, io } from "socket.io-client";
 import { MessageEvent } from "../socket/message.events";
 import { RequestEvents } from "../socket/request.events";
 import { RelationEvent } from "../socket/relation.events";
-import { iRelation } from "../models/user.model";
 
+/** This class holds event and callback configuration for Socket events. */
 export class SocketMethods {
   private static instance: SocketMethods;
   static socket: Socket | null;
@@ -23,6 +23,11 @@ export class SocketMethods {
 
   private constructor() {}
 
+  /** This function:
+   * - connects the client to the server via socket
+   * - instantiates a new client socket class
+   * - prepares socket events
+   */
   static readonly init = () => {
     this.socket = io("https://localhost:8000");
     SocketMethods.get();
@@ -63,12 +68,14 @@ export class SocketMethods {
     });
   };
 
+  /** This function disconnects client from any connected rooms and server socket connection. */
   static readonly destroy = () => {
     this.socket!.disconnect();
     console.log(`${this.socket!.id} user disconnected to server`);
     this.socket = null;
   };
 
+  /** This function returns a new or old instance of the class. */
   static readonly get = (): SocketMethods => {
     if (!this.instance) this.instance = new SocketMethods();
     return this.instance;

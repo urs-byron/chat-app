@@ -7,13 +7,21 @@ import { UserComponent } from "../components/user.comp";
 import { PeerComponent } from "../components/peer.comp";
 import { ErrorComponent } from "../components/error.comp";
 import { iRelation, iRequest } from "../models/user.model";
-import { Validate } from "./validation.util";
 
+/** Thi class holds a variety of helper functions used throughout the client code base. */
 export class GenUtil {
   private static inst: GenUtil;
 
   private constructor() {}
 
+  /**
+   * This function transforms an iRequest object retrieved from a redis.
+   *
+   * @param { any } obj
+   * @returns { iRequest }
+   *
+   * @static
+   */
   static readonly requestStrIntToBool = (obj: any): iRequest => {
     if (obj.isGroup === "0" || obj.isGroup === 0) {
       obj.isGroup = false;
@@ -23,7 +31,14 @@ export class GenUtil {
 
     return obj;
   };
-
+  /**
+   * This function transforms an iRelation object retrieved from a redis.
+   *
+   * @param { any } obj
+   * @returns { iRelation }
+   *
+   * @static
+   */
   static readonly relationStrIntToBool = (obj: any): iRelation => {
     if (obj.admin === "0" || obj.admin === 0) {
       obj.admin = false;
@@ -58,6 +73,8 @@ export class GenUtil {
    *
    * @example
    * GenUtil.milliToTime(1692946408844); // Returns '2:53:28 PM'
+   *
+   * @static
    */
   static readonly milliToTime: (milliseconds: number) => string = (
     milliseconds
@@ -88,6 +105,8 @@ export class GenUtil {
    * @returns {Promise<boolean>}
    *
    * @listens load
+   *
+   * @static
    */
   static readonly logUser = async (e?: Event): Promise<boolean> => {
     /** DATA GATHERING
@@ -144,6 +163,8 @@ export class GenUtil {
   /**
    * Returns an instance of the GenUtil class.
    * @returns {GenUtil}
+   *
+   * @static
    */
   static readonly getInst: () => GenUtil = (): GenUtil => {
     if (!this.inst) this.inst = new GenUtil();
