@@ -26,8 +26,13 @@ import {
   iSearchValues,
 } from "../models/peer.model";
 
+/**
+ * This class holds functions which manage and render data related to the user peer(s)' and its data and HTML items.
+ *
+ * @extends Component
+ */
 export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
-  static instance: PeerComponent | null;
+  private static instance: PeerComponent | null;
 
   private chatUserWrap!: HTMLDivElement;
   private chatUserToggle!: HTMLDivElement;
@@ -39,22 +44,39 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
   private chatSearchInput!: HTMLInputElement;
   private chatSearchList!: HTMLDivElement;
   private chatSearchListWrap!: HTMLDivElement;
-  static chatPeerList: HTMLDivElement;
+  private static chatPeerList: HTMLDivElement;
   private chatPeerListWrap!: HTMLDivElement;
 
-  static chatPeerRelationsInfo: Array<iRelation> = [];
-  static chatPeerRelationsHTML: Array<HTMLDivElement> = [];
+  /** array of peer list item data */
+  private static chatPeerRelationsInfo: Array<iRelation> = [];
+  /** array of peer list item HTML elements */
+  private static chatPeerRelationsHTML: Array<HTMLDivElement> = [];
 
+  /** skip counter for peer list pagination logic */
   private relSkip: number = 0;
+  /** skip limit constant for peer list pagination logic */
   private relSkipConst: number = 15;
+  /** skip counter for search list pagination logic */
   private searchSkip: number = 0;
+  /** skip limit constant for search list pagination logic */
   private searchSkipConst: number = 15;
+  /** skip full indicator for search list pagination logic */
   private searchFull: boolean = false;
+  /** search item total count for search list pagination logic */
   private searchResults: number = 0;
 
   // FOREIGN COMPONENT ELEMENT
   private chatApp!: HTMLDivElement;
 
+  /**
+   * Upon instantiation, the constructor:
+   * - immediately fetches for user connected peers
+   * - renders data into corresponding HTML elements
+   *
+   * @param { iUserObj } userData - set of data retrieved from the server, specific for the logged user
+   *
+   * @constructor
+   */
   private constructor(private readonly userData: iUserObj) {
     super(".chat-peer-wrap", "peer-temp", "afterbegin");
 
@@ -123,7 +145,7 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
     );
     PeerComponent.chatPeerList.addEventListener(
       "click",
-      this.clickPeerListHandler
+      this.togglePeerTooltipHandler
     );
     this.chatSearchListWrap.addEventListener(
       "scroll",
@@ -150,15 +172,39 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
   // ----------------------------
   // ------ EVENT HANDLERS ------
   // ----------------------------
-  private clickUserToggleHandler = (e: Event): void => {
+
+  /**
+   * This callback listens to a click event, which upon doing so, instructs UI to make the user component visible.
+   *
+   * @param { MouseEvent } e
+   *
+   * @listens MouseEvent
+   */
+  private clickUserToggleHandler = (e: MouseEvent): void => {
     this.chatUserWrap.classList.add("chat-user-show");
   };
-  private removeSearchHandler = (e?: Event): void => {
+
+  /**
+   * This function, upon invoking, modifies HTML lists' CSS classes to apply visibility to peer list alone.
+   *
+   * @param { MouseEvent } [e]
+   *
+   * @listens MouseEvent
+   */
+  private removeSearchHandler = (e?: MouseEvent): void => {
     this.chatPeerHeadings.classList.remove("chat-lists-search");
     this.chatPeerLists.classList.remove("chat-lists-search");
     this.chatSearchForm.classList.remove("chat-search-form-search-state");
   };
-  private clickSearchHandler = (e: Event): void => {
+
+  /**
+   * Upon callback, this function checks whether search list is visible, then hides it if so.
+   *
+   * @param { MouseEvent } e
+   *
+   * @listens MouseEvent
+   */
+  private clickSearchHandler = (e: MouseEvent): void => {
     // if search list is visible
     if (this.chatPeerHeadings.classList.contains("chat-lists-search")) {
       // if search input has value
@@ -171,7 +217,13 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
       this.chatSearchForm.classList.add("chat-search-form-search-state");
     }
   };
-  private readonly createSearch = (): iSearchValues => {
+
+  /**
+   * This function returns a search component summary object, reflecting of the current state of the search list, to be used in an HTTP request.
+   *
+   * @returns { iSearchValues }
+   */
+  private readonly createSearchReqObj = (): iSearchValues => {
     const searchType: iChatType = this.chatSearchTypes.dataset
       .chatType! as iChatType;
     const skip: number = this.searchSkip;
@@ -183,6 +235,15 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
       cnt: this.searchResults,
     };
   };
+
+  /**
+   * Upon callback, this function:
+   * - resets search related variables
+   * - sends search related variables for new batch of search items
+   *
+   * @param { Event } e
+   * @returns { Promise<void> }
+   */
   private submitSearchHandler = async (e: Event): Promise<void> => {
     e.preventDefault();
 
@@ -192,7 +253,7 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
     this.searchFull = false;
 
     // DATA GATHERING
-    const chatSearchValue: iSearchValues = this.createSearch();
+    const chatSearchValue: iSearchValues = this.createSearchReqObj();
 
     // VALIDATION
     const searchValid = Validate.search(
@@ -253,14 +314,21 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
     if (!searchItems.length || searchItems.length < this.searchSkipConst)
       this.searchFull = true;
   };
-  private scrollBottomSearchList = async (e: Event) => {
+
+  /**
+   * Upon callback, this function sends search status summary for next batch of search items.
+   *
+   * @param { Event } e
+   * @returns { Promise<void> }
+   */
+  private scrollBottomSearchList = async (e: Event): Promise<void> => {
     if (this.searchFull) return;
 
     const t = e.target as HTMLElement;
 
     if (t.scrollTop === t.scrollHeight - t.offsetHeight) {
       // DATA GATHERING
-      const chatSearchValue: iSearchValues = this.createSearch();
+      const chatSearchValue: iSearchValues = this.createSearchReqObj();
 
       // VALIDATION
       const searchValid = Validate.search(
@@ -313,7 +381,15 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
         this.searchFull = true;
     }
   };
-  private clickSearchTypesHandler = (e: Event): void => {
+
+  /**
+   * Upon callback, this function modifies search type.
+   *
+   * @param { MouseEvent } e
+   *
+   * @listens MouseEvent
+   */
+  private clickSearchTypesHandler = (e: MouseEvent): void => {
     const target = e.target as HTMLButtonElement;
 
     target.classList.contains("chat-search-type")
@@ -327,7 +403,15 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
     target.classList.add("chat-search-type");
     this.chatSearchTypes.dataset.chatType = target.dataset.chatType;
   };
-  private clickSearchItemHandler = (e: Event): void => {
+
+  /**
+   * Upon callback, this function calls for a new instance of the Message Component, corresponding the clicked peer | gorup target.
+   *
+   * @param { MouseEvent } e
+   *
+   * @listens MouseEvent
+   */
+  private clickSearchItemHandler = (e: MouseEvent): void => {
     const target = e.currentTarget as HTMLElement;
 
     let chatId: string = "";
@@ -350,6 +434,14 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
       peerFlag
     );
   };
+
+  /**
+   * Upon callback, this function proceeds with a logic to decide whether the event can instruct the Peer Component to hide search list.
+   *
+   * @param { MouseEvent } e
+   *
+   * @listens MouseEvent
+   */
   private undoEventClickHandler = (e: MouseEvent): void => {
     const target = e.target as HTMLElement;
 
@@ -372,6 +464,14 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
       }
     }
   };
+
+  /**
+   * Upon callback, this function prevents pressing 'Enter' key to hide search list.
+   *
+   * @param { KeyboardEvent } e
+   *
+   * @listens KeyboardEvent
+   */
   private undoEventKeyHandler = (e: KeyboardEvent): void => {
     // if (
     //   e.type === "keypress" &&
@@ -380,6 +480,14 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
     // )
     //   e.preventDefault();
   };
+
+  /**
+   * Upon callback, this function calls for a new instance of the Message Component, corresponding the clicked peer | gorup target.
+   *
+   * @param { MouseEvent } e
+   *
+   * @listens MouseEvent
+   */
   private clickPeerItemHandler = (e: MouseEvent) => {
     const target = (e.currentTarget as HTMLElement).parentElement!;
 
@@ -394,39 +502,69 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
       true
     );
   };
-  private clickPeerListHandler = (e: MouseEvent): void => {
+
+  /**
+   * Upon callback, this function either:
+   * - hide visible peer item tooltip
+   * - show a peer item tooltip
+   *
+   * @param { MouseEvent } e
+   *
+   * @listens MouseEvent
+   */
+  private togglePeerTooltipHandler = (e: MouseEvent): void => {
     let target = e.target as HTMLElement;
 
-    if (target.classList.contains("chat-contact-tooltip")) {
-      // if target clicked is the icon instead of the tooltip area, change target to parent
-      if (target.classList.contains("fa-ellipsis-vertical")) {
-        target = target.parentElement as HTMLElement;
-      }
+    if (
+      !target.classList.contains("chat-contact-tooltip") &&
+      !target.classList.contains("fa-ellipsis-vertical")
+    )
+      return;
 
-      const action = target.querySelector(
-        ".chat-contact-tooltip-content"
-      ) as HTMLElement;
+    // if target clicked is the icon instead of the tooltip area, change target to parent
+    if (target.classList.contains("fa-ellipsis-vertical")) {
+      target = target.parentElement as HTMLElement;
+    }
 
-      if (action.classList.contains("chat-contact-tooltip-show")) {
-        action.classList.remove("chat-contact-tooltip-show");
-      } else {
-        const actions = [
-          ...PeerComponent.chatPeerList.querySelectorAll(
-            ".chat-contact-tooltip-content"
-          ),
-        ] as Array<HTMLDivElement>;
+    const action = target.querySelector(
+      ".chat-contact-tooltip-content"
+    ) as HTMLElement;
 
-        actions.length > 0
-          ? actions.forEach((action) => {
-              action.classList.remove("chat-contact-tooltip-show");
-            })
-          : null;
+    if (action.classList.contains("chat-contact-tooltip-show")) {
+      // remove a single visible tooltip
+      action.classList.remove("chat-contact-tooltip-show");
+    } else {
+      const actions = [
+        ...PeerComponent.chatPeerList.querySelectorAll(
+          ".chat-contact-tooltip-content"
+        ),
+      ] as Array<HTMLDivElement>;
 
-        action.classList.add("chat-contact-tooltip-show");
-      }
+      // remove all visible tooltip
+      actions.length > 0
+        ? actions.forEach((action) => {
+            action.classList.remove("chat-contact-tooltip-show");
+          })
+        : null;
+
+      // apply visibility to clicked tooltip
+      action.classList.add("chat-contact-tooltip-show");
     }
   };
-  static readonly clickContactActionHandler = async (
+
+  /**
+   * Upon callback, this function
+   * - requests an HTTP PATCH to the server to modify user relationship status from target peer
+   * - modifies peer list item according to actiion taken
+   *
+   * @param { MouseEvent } e
+   * @returns { Promise<void> }
+   *
+   * @listens MouseEvent
+   *
+   * @static
+   */
+  private static readonly clickContactActionHandler = async (
     e: MouseEvent
   ): Promise<void> => {
     // DATA GATHERING
@@ -530,7 +668,16 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
     // DELETE ACTION OPTION
     target.parentElement?.removeChild(target);
   };
-  private readonly scrollBottomPeerList = async (e: Event) => {
+
+  /**
+   * Upon callback, this function feeds a function with an array of peer item data and transform them into corresponding HTML elements.
+   *
+   * @param { Event } e
+   * @returns { Promise<void> }
+   *
+   * @listens Event - scroll
+   */
+  private readonly scrollBottomPeerList = async (e: Event): Promise<void> => {
     const t = e.target as HTMLElement;
 
     if (t.scrollTop === t.scrollHeight - t.offsetHeight) {
@@ -540,6 +687,14 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
       this.relSkip++;
     }
   };
+
+  /**
+   * This function returns a set of starting and ending numbers for the pagination logic of the peer list.
+   *
+   * @param { number } skip - current skip status of the list
+   * @param { number } [k] - initially, skip limit constant of the peer list
+   * @returns { { start: number; end: number } | void }
+   */
   private readonly getStartEnd = (
     skip: number,
     k: number = this.relSkipConst
@@ -552,9 +707,17 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
   // --------------------------
   // ----- CLASS UTILITY ------
   // --------------------------
+
+  /**
+   * This function
+   * - requests an HTTP POST to the server to retrieve user contacts.
+   * - stores retrieved data within class method
+   *
+   * @returns { Promise<void> }
+   */
   private async getUserContacts(): Promise<void> {
     // DATA GATHERING
-    const relBody = this.createRelBody();
+    const relBody = this.createRelReqBody();
 
     // HTTP REQUEST
     let response!: iHttpResponse;
@@ -584,6 +747,8 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
       );
     }
   }
+
+  /** This function connects client to other user based on data about connected peers. */
   private connectToSocketRooms(): void {
     const chatIds = PeerComponent.chatPeerRelationsInfo.map(
       (rel) => rel.chat_id
@@ -597,17 +762,29 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
       }
     );
   }
-  private async getPeerSearches() {}
-  private generateSearchItems(
-    userItems: iSearchItems,
-    type: "user" | "group"
-  ): void {
+
+  /**
+   * This function loops over search item data and transforms them into HTML elements.
+   *
+   * @param { iSearchItems } userItems - array of search item data
+   * @param { iChatType } type
+   */
+  private generateSearchItems(userItems: iSearchItems, type: iChatType): void {
     let user: iSearchItem;
     for (user of userItems) {
       this.createSearchItem(user, type);
     }
   }
-  private createSearchItem(user: iSearchItem, type: iChatType) {
+
+  /**
+   * This function
+   * - creates a corresponding HTML element from the user object
+   * - attaches them to the search list element
+   *
+   * @param { iSearchItems } user - user object
+   * @param { iChatType } type - user chat type
+   */
+  private createSearchItem(user: iSearchItem, type: iChatType): void {
     // DATA GATHERING
     const userValid = Validate.searchItem(user);
 
@@ -639,6 +816,8 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
 
     this.chatSearchList.insertAdjacentElement("beforeend", searchItem);
   }
+
+  /** This function loops over peer item data and transforms them into HTML elements. */
   private generateContactItems = (): void => {
     const { start, end } = this.getStartEnd(this.relSkip)!;
     let i: number = start;
@@ -651,11 +830,20 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
     let item: iRelation;
     for (item of slicedArr) {
       if (i === end) break;
-      PeerComponent.createRelationItem(item);
+      PeerComponent.createRelationItemHTML(item);
       i++;
     }
   };
-  static readonly createRelationItem = (
+
+  /**
+   * This function creates and returns an HTML element from a user relation data about a peer.
+   *
+   * @param { iRelation } item - user's relation object to describe peer
+   * @returns { HTMLDivElement | void }
+   *
+   * @static
+   */
+  private static readonly createRelationItemHTML = (
     item: iRelation
   ): HTMLDivElement | void => {
     item = GenUtil.relationStrIntToBool(item) as iRelation;
@@ -758,7 +946,12 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
 
     return itemWrap;
   };
-  private createRelBody(): iRelBody {
+
+  /** This function creates an object for an HTTP POST for peer list items retrieval.
+   *
+   * @returns { iRelBody }
+   */
+  private createRelReqBody(): iRelBody {
     return {
       contactType: "contact",
       chatType: "user",
@@ -766,6 +959,8 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
       skip: this.relSkip,
     };
   }
+
+  /** This function creates an instance of the peer lists first item if available. */
   private readonly createFirstPeerMsgComp = () => {
     if (PeerComponent.chatPeerRelationsInfo.length) {
       const firstRelation = PeerComponent.chatPeerRelationsInfo[0];
@@ -782,6 +977,16 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
       );
     }
   };
+
+  /**
+   * This function modifies a peer item HTML, from:
+   * - adding an item to peer list
+   * - message information
+   * - reordering peer list items
+   *
+   * @param { iRelation } rel - user data on a peer about their relation
+   * @param { iMsgBody } [msg] - optional message item
+   */
   static readonly updatePeerListHTML = (rel: iRelation, msg?: iMsgBody) => {
     const vRelInfo = this.searchPeerInfo(rel.chat_id);
     let vRelHTML: HTMLDivElement;
@@ -804,7 +1009,7 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
     } else {
       withinList = false;
       // if rel is not within peerInfo, create representing HTML
-      vRelHTML = this.createRelationItem(rel)!;
+      vRelHTML = this.createRelationItemHTML(rel)!;
     }
 
     // if called from new msg, add message
@@ -823,6 +1028,15 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
       this.chatPeerList.prepend(vRelHTML);
     }
   };
+
+  /**
+   * This function returns matching peer item object from class stored peer items data.
+   *
+   * @param { string } id - account id or group id of a user peer
+   * @returns { iRelation | undefined }
+   *
+   * @static
+   */
   static readonly searchPeerInfo = (id: string): iRelation | undefined => {
     const t: iRelation | undefined = PeerComponent.chatPeerRelationsInfo.find(
       (rel: iRelation) => rel.chat_id === id
@@ -830,6 +1044,15 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
 
     return t;
   };
+
+  /**
+   * This function returns matching peer item HTML element from class tracked peer HTML array.
+   *
+   * @param { string } id - account id or group id of a user peer
+   * @returns { DivElement | undefined }
+   *
+   * @static
+   */
   static readonly searchPeerHTML = (id: string): HTMLDivElement | void => {
     let html;
     this.chatPeerRelationsHTML.forEach((h: HTMLDivElement) => {
@@ -840,6 +1063,12 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
 
     return html;
   };
+
+  /**
+   * This function
+   * - loops over a certain range of peer item HTML
+   * - fetch its most recent message, if available
+   */
   private readonly fetchTopMsgs = async () => {
     let h: HTMLDivElement;
     let i: number = 0;
@@ -853,7 +1082,16 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
       i++;
     }
   };
-  private readonly fetchTopMsg = async (peerHTML: HTMLDivElement) => {
+
+  /**
+   * This function requests an HTTP GET to the server to retrieve its most recent message.
+   *
+   * @param { HTMLDivElement } peerHTML - peer item html as source of chat ID
+   * @returns { Promise<void> }
+   */
+  private readonly fetchTopMsg = async (
+    peerHTML: HTMLDivElement
+  ): Promise<void> => {
     if (
       !(peerHTML instanceof HTMLDivElement) ||
       peerHTML.dataset.chatId === undefined ||
@@ -885,13 +1123,32 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
 
     PeerComponent.updateMsg(peerHTML, data);
   };
-  static readonly updateMsg = (html: HTMLDivElement, data: iMsgBody) => {
+
+  /**
+   * This function updates an HTML message info elements.
+   *
+   * @param { HTMLDivElement } html - HTML element to be modified
+   * @param { iMsgBody } data - message data
+   */
+  private static readonly updateMsg = (
+    html: HTMLDivElement,
+    data: iMsgBody
+  ) => {
     const t = html.querySelector("span:first-child")!;
     t.textContent = GenUtil.milliToTime(+data.timeReceived);
     const m = html.querySelector("span:last-child")!;
     m.textContent = " - ".concat(data.msg.slice(0, 10)).concat(" ...");
   };
 
+  /**
+   * This function either returns
+   * - anew or old instance of the class
+   * - null if the class is instructed to be deleted
+   *
+   * @param { boolean } deleteInstance - flag indicating whether this class will be deleted
+   * @param { iUserObj } userObj - user data
+   * @returns { PeerComponent | null }
+   */
   static readonly getInstance = (
     deleteInstance: boolean,
     userObj: iUserObj

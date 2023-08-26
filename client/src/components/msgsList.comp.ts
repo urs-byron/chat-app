@@ -13,6 +13,11 @@ import { GroupComponent } from "./group.comp";
 import { ErrorComponent as error } from "./error.comp";
 import { iChatType, iRequestBody } from "../models/gen.model";
 
+/**
+ * This class holds functions which manage and render data related to the user and their peer(s)' message lists and its items.
+ *
+ * @extends Component
+ */
 export class MessagesListComponent extends Component<
   HTMLDivElement,
   HTMLElement
@@ -20,7 +25,7 @@ export class MessagesListComponent extends Component<
   private static instance: MessagesListComponent | null;
   private static chatMsgsList: HTMLDivElement;
 
-  static chatMsgsListWrap: HTMLDivElement;
+  private static chatMsgsListWrap: HTMLDivElement;
   private chatMsgHead!: HTMLDivElement;
   private chatMsgHeadName!: HTMLHeadingElement;
   private chatListGrpBtnWrap!: HTMLDivElement;
@@ -32,16 +37,46 @@ export class MessagesListComponent extends Component<
   private chatMsgModal!: HTMLFormElement;
   private modalGroupInput!: HTMLInputElement;
 
-  private static readonly myMsgClass: string = "chat-msg-others";
-  private static readonly peerMsgClass: string = "chat-msg-mine";
+  /** CSS Class name to style user sent message. */
+  private static readonly myMsgClass: string = "chat-msg-mine";
+  /** CSS Class name to style peer(s) sent message. */
+  private static readonly peerMsgClass: string = "chat-msg-others";
+  /** Naming convention for session stored message list array. */
   private static readonly sessionStoreListKey: string = "msgList";
+  /** Account ID of the user's target. */
   private static sPeerId: string;
+
+  /** Skip counter for the peer list's pagination logic. */
   private skip: number = 0;
+  /** Skip Constant for the peer list's pagination logic. */
   private skipCnt: 30 = 30;
+  /** Message ID between the user & peer's chat data. */
   private msgsId: string | null = null;
+  /** Message List Items Map between the user & peer's chat data. */
   private msgsLists: Map<string, iMsgBody[]> = new Map();
+  /** Message List Items count between the user & peer's chat data. */
   private msgsListCnt: number = 0;
 
+  /**
+   * Upon instantiation, the constructor:
+   * - checks for available session stored matching message list
+   * - if available: skips fetching from server and modifies pagination related data
+   * - else        : fetches from server
+   *
+   * Then:
+   * - configures related UI component
+   * - render related UI component
+   *
+   * @param { string } userId - account id of the client logged in
+   * @param { string } peerId - account id of the user's target connected peer
+   * @param { string } peerName - account name of the user's target connected peer
+   * @param { string } chatId - chat id between the user & peer | group
+   * @param { boolean } availability - availability setting of the user target
+   * @param { iChatType } type - chat type of the user's target
+   * @param { boolean } fromPeer - flag indicating if the user target is from the peer list
+   *
+   * @constructor
+   */
   private constructor(
     private readonly userId: string,
     private readonly peerId: string,
@@ -143,8 +178,8 @@ export class MessagesListComponent extends Component<
       this.chatListGrpBtn.classList.add(
         "chat-msg-head-opts-btn-unavailable-state"
       );
-      MessagesListComponent.chatMsgsListWrap.scrollTop =
-        MessagesListComponent.chatMsgsListWrap.scrollHeight;
+      MessagesListComponent.getChatMsgsListWrap().scrollTop =
+        MessagesListComponent.getChatMsgsListWrap().scrollHeight;
       this.chatMsgsForms.classList.add("chat-msg-form-request-state");
     } else {
       this.chatListGrpBtn.addEventListener(
@@ -164,8 +199,8 @@ export class MessagesListComponent extends Component<
       )
     );
 
-    MessagesListComponent.chatMsgsListWrap.scrollTop =
-      MessagesListComponent.chatMsgsListWrap.scrollHeight;
+    MessagesListComponent.getChatMsgsListWrap().scrollTop =
+      MessagesListComponent.getChatMsgsListWrap().scrollHeight;
   }
 
   // --------------------------
@@ -177,6 +212,13 @@ export class MessagesListComponent extends Component<
   static readonly getChatMsgBody = (): HTMLDivElement => {
     return this.chatMsgBody;
   };
+
+  /**
+   * This function returns total message list items count.
+   *
+   * @param { string } chatId - chat id between the user & peer | group
+   * @returns { number }
+   */
   static readonly getMsgListInfoCount = (chatId: string): number => {
     const t = JSON.parse(
       sessionStorage.getItem(this.sessionStoreListKey + chatId)!
@@ -186,6 +228,17 @@ export class MessagesListComponent extends Component<
 
     return n;
   };
+
+  /**
+   * This function modifies the session Message List Data by either:
+   * - adding a single message item
+   * - adding an array of message items
+   *
+   * @param { string } chatId - chat id between the user & peer | group
+   * @param { iMsgBody | null } [msg] - message item object
+   * @param { iMsgBody[] | null } [msgs] - array of message item object
+   * @returns { void }
+   */
   static readonly setMsgListInfo = (
     chatId: string,
     msg: iMsgBody | null,
@@ -218,18 +271,36 @@ export class MessagesListComponent extends Component<
     // set session item
     sessionStorage.setItem(keyName, JSON.stringify(a1));
   };
-  public readonly incrMsgsListCnt = (incr: number = 1) => {
+
+  /** This function increments the Message List Items count of a specific chat data by one (1). */
+  public readonly incrMsgsListCnt = (): void => {
     this.msgsListCnt++;
   };
 
   // --------------------------
   // ----- EVENT HANDLERS -----
   // --------------------------
-  private clickMsgOptsBtnHandler = (e: Event): void => {
+
+  /**
+   * This listener function shows group component if the target peer type is user.
+   *
+   * @param { MouseEvent } e
+   *
+   * @listens MouseEvent
+   */
+  private clickMsgOptsBtnHandler = (e: MouseEvent): void => {
     this.chatMsgModal.classList.toggle("chat-msg-group-modal-show-state");
     GroupComponent.emptyRequestStack();
   };
-  private clickMsgBtnRequestHandler = (e: Event): void => {
+
+  /**
+   * This listener function sends request to the target peer via socket.
+   *
+   * @param { MouseEvent } e
+   *
+   * @listens MouseEvent
+   */
+  private clickMsgBtnRequestHandler = (e: MouseEvent): void => {
     const reqBody: iRequestBody = MessagesListComponent.createRequestBody(
       this.chatMsgsForms.dataset.chatType as "user" | "group",
       this.peerId as string
@@ -237,12 +308,21 @@ export class MessagesListComponent extends Component<
 
     SocketMethods.socket?.emit(SocketMethods.postRequestEv, reqBody);
   };
+
+  /**
+   * This listener function sends message body to the target peer chat via socket.
+   *
+   * @param { SubmitEvent } e
+   *
+   * @listens SubmitEvent
+   */
   private submitMessageHandler = (e: SubmitEvent): void => {
     e.preventDefault();
     const inputHMTL = (e.target as HTMLFormElement).querySelector(
       "input"
     )! as HTMLInputElement;
 
+    /** Message Item to be sent to chat */
     const msgBody: iMsgBody = {
       msg: inputHMTL.value,
       msgId: crypto.randomUUID().replace(/-/g, ""),
@@ -252,6 +332,7 @@ export class MessagesListComponent extends Component<
       timeReceived: 0,
     };
 
+    /** Socket Event and callback Response upon sending message to chat */
     SocketMethods.socket!.emit(
       SocketMethods.postMessageEv,
       msgBody,
@@ -262,7 +343,7 @@ export class MessagesListComponent extends Component<
           MessagesListComponent.createMsgItem(
             res,
             MessagesListComponent.chatMsgBody,
-            MessagesListComponent.chatMsgsListWrap,
+            MessagesListComponent.getChatMsgsListWrap(),
             0
           );
 
@@ -274,8 +355,8 @@ export class MessagesListComponent extends Component<
           this.msgsListCnt = this.msgsListCnt + 1;
           MessagesListComponent.setMsgListInfo(this.chatId, res, null);
 
-          MessagesListComponent.chatMsgsListWrap.scrollTop =
-            MessagesListComponent.chatMsgsListWrap.scrollHeight;
+          MessagesListComponent.getChatMsgsListWrap().scrollTop =
+            MessagesListComponent.getChatMsgsListWrap().scrollHeight;
         } else
           error.showComp(
             "ERROR: server failed to send message",
@@ -286,6 +367,14 @@ export class MessagesListComponent extends Component<
 
     inputHMTL.value = "";
   };
+
+  /**
+   * This listener function retrieves addition message list items from target peer chat.
+   *
+   * @param { Event } e - specifically a scroll event
+   *
+   * @listens Event - specifically a scroll event
+   */
   private getMoreMessages = async (e: Event): Promise<void> => {
     // DATA FATHERING
     const t = e.target as HTMLDivElement;
@@ -358,6 +447,12 @@ export class MessagesListComponent extends Component<
   // --------------------------
   // ----- CLASS UTILITY ------
   // --------------------------
+
+  /**
+   * This function requests an HTTP POST to the server to retrieve first batch of chat data message items.
+   *
+   * @returns { Promise<void> }
+   */
   private async getMessages(): Promise<void> {
     // DATA GATHERING
     let response!: iHttpResponse;
@@ -379,7 +474,6 @@ export class MessagesListComponent extends Component<
       `server error occured`,
       `client responded with an error for upon request for chat messages`
     );
-
     if (!httpValid) return;
 
     // HTTP RESPONSE PROCESSING
@@ -395,6 +489,7 @@ export class MessagesListComponent extends Component<
     //   JSON.stringify(response.data.data.msgs)
     // );
 
+    // PROCESS: further if the message data retrieved is not empty by any means
     if (
       response.data.data.msgs !== null &&
       Array.isArray(response.data.data.msgs) &&
@@ -408,7 +503,17 @@ export class MessagesListComponent extends Component<
       response.data.data.msgs as iMsgBody[]
     );
   }
-  private readonly generateMsgItems = (userId: string, msgs: iMsgBody[]) => {
+
+  /**
+   * This function renders retrieved array of message list items to HTML elements.
+   *
+   * @param { string } userId - account id of the client logged in
+   * @param { iMsgBody[] } msgs - Message List Items Array between the user & peer's chat data.
+   */
+  private readonly generateMsgItems = (
+    userId: string,
+    msgs: iMsgBody[]
+  ): void => {
     let msg: iMsgBody;
 
     if (msgs === null || !Array.isArray(msgs) || !msgs.length) return;
@@ -417,12 +522,22 @@ export class MessagesListComponent extends Component<
       MessagesListComponent.createMsgItem(
         msg,
         MessagesListComponent.chatMsgBody,
-        MessagesListComponent.chatMsgsListWrap,
+        MessagesListComponent.getChatMsgsListWrap(),
         userId === msg.senderId ? 0 : 1,
         true
       );
     }
   };
+
+  /**
+   * This function creates an object for the user's outgoing request.
+   *
+   * @param { iChatType } type - chat type of the user's target
+   * @param { string } receiverId - account id of the user's request recipient
+   * @returns { iRequestBody }
+   *
+   * @static
+   */
   static createRequestBody(type: iChatType, receiverId: string): iRequestBody {
     return {
       type: type === "user" ? 1 : 2,
@@ -430,6 +545,19 @@ export class MessagesListComponent extends Component<
       groupId: type === "group" ? receiverId! : null,
     };
   }
+
+  /**
+   * This function transforms the message list item object into a HTMLelement and attaches it to the MessageComponentList.
+   *
+   * @param { iMsgBody } msg
+   * @param { HTMLDivElement } wrap
+   * @param { HTMLDivElement } chatMsgsListWrap
+   * @param { 0 | 1} type
+   * @param { boolean } isFetched
+   * @returns
+   *
+   * @static
+   */
   static readonly createMsgItem = (
     msg: iMsgBody,
     wrap: HTMLDivElement,
@@ -438,7 +566,9 @@ export class MessagesListComponent extends Component<
     type: 0 | 1,
     isFetched: boolean = false
   ) => {
-    if (msg.chatId !== MessagesListComponent.chatMsgsListWrap.dataset.chatId) {
+    if (
+      msg.chatId !== MessagesListComponent.getChatMsgsListWrap().dataset.chatId
+    ) {
       console.log(msg.chatId);
       return;
     }
@@ -469,7 +599,7 @@ export class MessagesListComponent extends Component<
 
     msgWrapWrap.appendChild(msgWrap);
 
-    msgWrapWrap.classList.add(type ? this.myMsgClass : this.peerMsgClass);
+    msgWrapWrap.classList.add(type ? this.peerMsgClass : this.myMsgClass);
 
     if (isFetched) wrap.prepend(msgWrapWrap);
     else wrap.append(msgWrapWrap);
@@ -498,6 +628,12 @@ export class MessagesListComponent extends Component<
     //   </div>
     // </div>
   };
+
+  /**
+   * This function returns an object to be use for requesting subsequent batch of message list items.
+   *
+   * @returns { iChatReqBody }
+   */
   private getChatReqBody(): iChatReqBody {
     return {
       skip: this.skip,
@@ -507,6 +643,24 @@ export class MessagesListComponent extends Component<
     };
   }
 
+  /**
+   * This function controls returns its constructor instance & whether MessagesListComponent either:
+   * - call a new class for a new peer message component
+   * - delete class and corresponding HTML elements
+   *
+   * @param { string } userId - account id of the client logged in
+   * @param { string } peerId - account id of the user's target connected peer
+   * @param { string } peerName - account name of the user's target connected peer
+   * @param { string } chatId - chat id between the user & peer | group
+   * @param { boolean } availability - availability setting of the user target
+   * @param { iChatType } type - chat type of the user's target
+   * @param { boolean } fromPeer - flag indicating if the user target is from the peer list
+   * @param { boolean } deleteInstance - flag indicating if user target comp is to be deleted
+   *
+   * @returns { MessagesListComponent | null }
+   *
+   * @static
+   */
   static readonly init = (
     userId: string,
     peerId: string,
@@ -518,6 +672,7 @@ export class MessagesListComponent extends Component<
     deleteInstance: boolean
   ): MessagesListComponent | null => {
     if (!deleteInstance) {
+      // calls for a new instance if there is no previous called instance
       if (!this.instance) {
         this.instance = new MessagesListComponent(
           userId,
@@ -528,20 +683,23 @@ export class MessagesListComponent extends Component<
           type,
           fromPeer
         );
+
+        // sets new main component div element
         this.chatMsgsList = document.querySelector(
           ".chat-msg-list"
         )! as HTMLDivElement;
       }
     } else {
       if (type === "user") GroupComponent.getInstance(peerId, type, true);
+
       this.instance = null;
       this.chatMsgsList.innerHTML = "";
-      this.chatMsgsListWrap;
-      this.chatMsgBody;
     }
+
     return this.instance;
   };
 
+  /** This function returns available MessageListComponent instance */
   static readonly getInst = (): MessagesListComponent | null => {
     if (!this.instance) return null;
     return this.instance;

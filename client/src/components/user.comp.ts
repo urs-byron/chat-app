@@ -5,6 +5,7 @@ import { Component } from "./base.comp";
 import { AppComponent } from "./app.comp";
 import { iRelationAct } from "../models/peer.model";
 import { PeerComponent } from "./peer.comp";
+import { AuthComponent } from "./auth.comp";
 import { SocketMethods } from "../util/socket.util";
 import { iHttpResponse } from "../models/http.model";
 import { iValidityType } from "../models/validity.model";
@@ -33,8 +34,12 @@ import {
   httpPutUserPrivacy,
   httpPutUserPassword,
 } from "../hooks/requests.hook";
-import { AuthComponent } from "./auth.comp";
 
+/**
+ * This class holds functions w/c manages and renders data regarding user settings and requests.
+ *
+ * @extends Component
+ */
 export class UserComponent extends Component<HTMLDivElement, HTMLElement> {
   private static instance: UserComponent | null;
 
@@ -57,8 +62,15 @@ export class UserComponent extends Component<HTMLDivElement, HTMLElement> {
   private chastUserLogout!: HTMLDivElement;
 
   // COMPONENT FETCHED DATA
+
+  /** @type { iUser } - data regarding logged user's security, requests, & relations*/
   private chatUserInfo!: iUser;
 
+  /**
+   * Upon instantiation, the constructor immediately sends request to the server for user data.
+   *
+   * @constructor
+   */
   private constructor() {
     super(".chat-user-wrap", "user-temp", "afterbegin");
 
@@ -69,8 +81,7 @@ export class UserComponent extends Component<HTMLDivElement, HTMLElement> {
         await this.getUser();
         this.renderComponent();
       } catch (err) {
-        console.error(`client is unable to get user data`);
-        console.error(err);
+        error.showComp(`client is unable to get user data`, err);
       }
     })();
   }
@@ -157,15 +168,33 @@ export class UserComponent extends Component<HTMLDivElement, HTMLElement> {
   // --------------------------
   // ---- EVENT HANDLERS -----
   // --------------------------
-  private chatUserRemoveHandler = (e?: Event): void => {
+
+  /**
+   * Upon callback, this function hides user component.
+   *
+   * @param { MouseEvent } [e]
+   *
+   * @listens MouseEvent
+   */
+  private chatUserRemoveHandler = (e?: MouseEvent): void => {
     this.chatUserWrap.classList.remove("chat-user-show");
   };
+
+  /** This function assigns event listeners to user component sections' heads. */
   private chatToggleUserSection = (): void => {
     this.chatUserHeads.forEach((head) => {
       head.addEventListener("click", this.clickUserSectionHandler);
     });
   };
-  private clickUserSectionHandler = (e: Event): void => {
+
+  /**
+   * Upon callback, this function toggles visibility of clicked user component section.
+   *
+   * @param { MouseEvent } e
+   *
+   * @listens MouseEvent
+   */
+  private clickUserSectionHandler = (e: MouseEvent): void => {
     const headIcon: HTMLElement = (
       e.target as HTMLHeadingElement
     ).querySelector("i")! as HTMLElement;
@@ -175,7 +204,15 @@ export class UserComponent extends Component<HTMLDivElement, HTMLElement> {
     headIcon.classList.toggle("chat-user-head-toggled");
     headSibling.classList.toggle("chat-user-content-toggle");
   };
-  private clickUserRequest = (e: Event): void => {
+
+  /**
+   * This callback listens to click events which will emit a socket event to the server to respond to peer | group requests.
+   *
+   * @param { MouseEvent } e
+   *
+   * @listens MouseEvent
+   */
+  private clickUserRequest = (e: MouseEvent): void => {
     // DATA GATHERING
     const target = e.target as HTMLElement;
     const reqBody = this.createRequestBody(
@@ -232,7 +269,20 @@ export class UserComponent extends Component<HTMLDivElement, HTMLElement> {
       // }
     }
   };
-  static readonly clickUserMuteBlock = async (e: MouseEvent): Promise<void> => {
+
+  /**
+   *  Upon callback, this function
+   * - requests an HTTP PATCH to the server to modify user relationship status from target peer
+   * - modifies peer list item according to actiion taken
+   *
+   * @param { MouseEvent } e
+   * @returns { Promise<void> }
+   *
+   * @listens MouseEvent
+   */
+  private static readonly clickUserMuteBlock = async (
+    e: MouseEvent
+  ): Promise<void> => {
     // DATA GATHERING
     const target = e.target as HTMLElement;
     const action: "mute" | "block" = (target.parentElement as HTMLElement)
@@ -291,7 +341,15 @@ export class UserComponent extends Component<HTMLDivElement, HTMLElement> {
       (target.parentElement as HTMLElement).dataset.userId as string
     );
   };
-  private clickUserPublicHandler = async (e: Event): Promise<void> => {
+
+  /**
+   * Upon callback, this function requests an HTTP PUT to the server to modify their publicity setting.
+   *
+   * @param { MouseEvent } e
+   *
+   * @listens MouseEvent
+   */
+  private clickUserPublicHandler = async (e: MouseEvent): Promise<void> => {
     // DATA GATHERING
     const userPrivacy: iPrivacyRequest = {
       property: this.chatUserPublic.dataset
@@ -340,7 +398,17 @@ export class UserComponent extends Component<HTMLDivElement, HTMLElement> {
         : "true";
     this.chatUserPublic.dataset.settingsPublic = publicValue;
   };
-  private clickUserAvailabilityHandler = async (e: Event): Promise<void> => {
+
+  /**
+   * Upon callback, this function requests an HTTP PUT to the server to modify their availability setting.
+   *
+   * @param { MouseEvent } e
+   *
+   * @listens MouseEvent
+   */
+  private clickUserAvailabilityHandler = async (
+    e: MouseEvent
+  ): Promise<void> => {
     // DATA GATHERING
     const userPrivacy: iPrivacyRequest = {
       property: this.chatUserAvailability.dataset
@@ -391,7 +459,15 @@ export class UserComponent extends Component<HTMLDivElement, HTMLElement> {
         : "true";
     this.chatUserAvailability.dataset.settingsAvailability = publicValue;
   };
-  private submitPasswordHandler = async (e: Event): Promise<void> => {
+
+  /**
+   * Upon callback, this function requests an HTTP PUT to the server to modify their account password.
+   *
+   * @param { SubmitEvent } e
+   *
+   * @listens SubmitEvent
+   */
+  private submitPasswordHandler = async (e: SubmitEvent): Promise<void> => {
     e.preventDefault();
 
     // DATA GATHERING
@@ -436,7 +512,17 @@ export class UserComponent extends Component<HTMLDivElement, HTMLElement> {
     }
     this.clearPasswordForm();
   };
-  private userLogoutHandler = async (e?: Event): Promise<void> => {
+
+  /**
+   * Upon callback, this function:
+   * - requests HTTP GET to the server to initiate account logout
+   * - destroy any other connections
+   * - deletes related HTML elements
+   *
+   * @param { MouseEvent } [e]
+   * @returns { Promise<void> }
+   */
+  private userLogoutHandler = async (e?: MouseEvent): Promise<void> => {
     // HTTP REQUEST
     let response!: iHttpResponse;
     try {
@@ -472,6 +558,13 @@ export class UserComponent extends Component<HTMLDivElement, HTMLElement> {
   // ----- CLASS UTILITY ------
   // --------------------------
 
+  /**
+   * This function
+   * - requests an HTTP GET to the server
+   * - stores received user data to class
+   *
+   * @returns { Promise<void> }
+   */
   private async getUser(): Promise<void> {
     // HTTP REQUEST
     let response!: iHttpResponse;
@@ -493,16 +586,25 @@ export class UserComponent extends Component<HTMLDivElement, HTMLElement> {
     // HTTP RESPONSE PROCESSING
     this.chatUserInfo = response.data.data;
   }
+
+  /**
+   * This function retrieves values from password section input elements.
+   *
+   * @returns { iUserPassword }
+   */
   private getPasswordForm(): iUserPassword {
     return {
       password: this.chatUserPassword.value,
       rePassword: this.chatUserRePassword.value,
     };
   }
+
+  /** This function clears values of password section input elements.*/
   private clearPasswordForm(): void {
     this.chatUserPassword.value = "";
     this.chatUserRePassword.value = "";
   }
+
   private deleteUserComponents(): void {
     UserComponent.getInstance(true);
     PeerComponent.getInstance(true, {} as iUserObj);
@@ -520,6 +622,8 @@ export class UserComponent extends Component<HTMLDivElement, HTMLElement> {
     this.chatPeerWrap.innerHTML = "";
     this.chatUserRemoveHandler();
   }
+
+  /** Loops over available request items array from user data for rendering. */
   private generateRequests(): void {
     if (
       !this.chatUserInfo ||
@@ -549,6 +653,18 @@ export class UserComponent extends Component<HTMLDivElement, HTMLElement> {
       );
     }
   }
+
+  /**
+   * This function
+   * - transforms a request item data into an HTML element
+   * - attaches it to a corresponding request section
+   *
+   * @param { iRequest } item - request item data
+   * @param { HTMLDivElement } wrapper - request item section container
+   * @param { "incoming" | "outgoing" } type - requester chat type
+   *
+   * @static
+   */
   static readonly createRequest = (
     item: iRequest,
     wrapper: HTMLDivElement,
@@ -609,7 +725,19 @@ export class UserComponent extends Component<HTMLDivElement, HTMLElement> {
 
     wrapper.appendChild(itemWrap);
   };
-  static readonly deleteRequest = (requestItemId: string, type: 0 | 1) => {
+
+  /**
+   * This function deletes a request HTML element from the user component.
+   *
+   * @param { string } requestItemId - account or group id of the request item
+   * @param { 0 | 1 } type - account type of the request item
+   *
+   * @static
+   */
+  static readonly deleteRequest = (
+    requestItemId: string,
+    type: 0 | 1
+  ): void => {
     // DATA GATHERING
     const inputValid = Validate.requestDel(requestItemId, type);
 
@@ -621,7 +749,7 @@ export class UserComponent extends Component<HTMLDivElement, HTMLElement> {
       );
     }
 
-    // PROCESS
+    // PROCESS: wrapper identification
     let parentNode: HTMLDivElement;
     type === 0
       ? (parentNode = this.chatUserOutgoingWrap)
@@ -633,6 +761,11 @@ export class UserComponent extends Component<HTMLDivElement, HTMLElement> {
       )[0]
     );
   };
+
+  /** This function
+   * - loops ofer retrieved user relation data
+   * - picks who will belong to mute & block section
+   * */
   private generateMuteBlockItem(): void {
     const mutes = this.chatUserInfo.relations.mutes;
     const blocks = this.chatUserInfo.relations.blocks;
@@ -654,6 +787,17 @@ export class UserComponent extends Component<HTMLDivElement, HTMLElement> {
       );
     }
   }
+
+  /**
+   * This function
+   * - transforms a iRelation item data into an HTML element
+   * - attaches it to a corresponding section
+   *
+   * @param { iRelation } item - request item data
+   * @param { HTMLDivElement } wrapper - request item section container
+   * @param { 0 | 1 } type - mute | block item chat type
+   * @returns
+   */
   static readonly createMuteBlockItem = (
     item: iRelation,
     wrapper: HTMLDivElement,
@@ -700,6 +844,14 @@ export class UserComponent extends Component<HTMLDivElement, HTMLElement> {
     //   </p>
     // </div>;
   };
+
+  /**
+   * This function returns an object to be sent along an HTTP Request when sending peer request.
+   *
+   * @param { iStrBool } isGroup
+   * @param { string } receiverId
+   * @returns { iRequestBody }
+   */
   private createRequestBody(
     isGroup: iStrBool,
     receiverId: string
@@ -711,6 +863,14 @@ export class UserComponent extends Component<HTMLDivElement, HTMLElement> {
     };
   }
 
+  /**
+   * This function returns:
+   * - a new or old instance
+   * - null if the component is instructed for deletion
+   *
+   * @param { boolean } deleteInstance - flag indicating whther the component will be deleted.
+   * @returns
+   */
   static readonly getInstance = (
     deleteInstance: boolean
   ): UserComponent | null => {

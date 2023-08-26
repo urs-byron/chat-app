@@ -26,7 +26,7 @@ export class MessageEvent {
       MessagesListComponent.getInst()!.incrMsgsListCnt();
 
     MessagesListComponent.setMsgListInfo(
-      MessagesListComponent.chatMsgsListWrap.dataset.chatId!,
+      MessagesListComponent.getChatMsgsListWrap().dataset.chatId!,
       data,
       null
     );

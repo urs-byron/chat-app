@@ -46,7 +46,7 @@ export class RequestEvents {
       else
         MessagesOptionsComponent.createRequest(
           requestItem,
-          MessagesOptionsComponent.msgOptsIncomingWrap,
+          MessagesOptionsComponent.getMsgOptsIncomingWrap(),
           "incoming",
           chatId
         );
@@ -54,7 +54,7 @@ export class RequestEvents {
       if (type === 0)
         MessagesOptionsComponent.createRequest(
           requestItem,
-          MessagesOptionsComponent.msgOptsOutgoingWrap,
+          MessagesOptionsComponent.getMsgOptsOutgoingWrap(),
           "outgoing",
           chatId
         );

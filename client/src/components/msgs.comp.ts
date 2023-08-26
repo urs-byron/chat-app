@@ -39,7 +39,7 @@ export class MessagesComponent extends Component<HTMLDivElement, HTMLElement> {
 
   /**
    * This function controls whether MessagesComponent either:
-   * - call a new class for a new user message component
+   * - call a new class for a new peer message component
    * - delete class and corresponding HTML elements
    *
    * @param { string } userId - account id of the client logged in

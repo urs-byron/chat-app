@@ -7,7 +7,7 @@ import { iHttpResponse } from "../models/http.model";
 import { iValidityType } from "../models/validity.model";
 import { SocketMethods } from "../util/socket.util";
 import { ErrorComponent as error } from "./error.comp";
-import { iChatType, iRequestBody, iStrBool } from "../models/gen.model";
+import { iChatType, iRequestBody } from "../models/gen.model";
 import {
   iRelation,
   iRequest,
@@ -15,25 +15,54 @@ import {
   requestActions,
 } from "../models/user.model";
 
+/**
+ * This class holds functions which manage and render data related to the user and their peer(s)' message options and its items.
+ *
+ * @extends Component
+ */
 export class MessagesOptionsComponent extends Component<
   HTMLDivElement,
   HTMLElement
 > {
-  static instance: MessagesOptionsComponent | null;
-  static chatMsgsOpts: HTMLDivElement;
+  private static instance: MessagesOptionsComponent | null;
+  private static chatMsgsOpts: HTMLDivElement;
   private msgOptsMembership!: HTMLDivElement;
-  static msgOptsIncomingWrap: HTMLDivElement;
-  static msgOptsOutgoingWrap: HTMLDivElement;
-  static msgOptsAdminsgWrap: HTMLDivElement;
-  static msgOptsMembersWrap: HTMLDivElement;
+  private static msgOptsIncomingWrap: HTMLDivElement;
+  private static msgOptsOutgoingWrap: HTMLDivElement;
+  private static msgOptsAdminsgWrap: HTMLDivElement;
+  private static msgOptsMembersWrap: HTMLDivElement;
 
+  /** Array of HTML div elements containing clickable events. */
   private msgOptsHeads!: HTMLDivElement[];
 
-  // COMPONENT FETCHED DATA
-  private msgGrpInfo!: any;
-  static sType: iChatType;
-  static sChatId: string;
+  /** Group data from Id, name, requests, & relations. */
+  private msgGrpInfo!: {
+    accnt_name: string;
+    accnt_id: string;
+    privacy: boolean;
+    requests: {
+      incoming: iRequest[];
+      outgoing: iRequest[];
+    };
+    relations: iRelation[];
+  };
+  /** Chat Type of the target peer. */
+  private static sType: iChatType;
+  /** Chat ID between the user & the target peer(s) chat data. */
+  private static sChatId: string;
 
+  /**
+   * Upon instantiation, if the peer type is 'group', the constructor will call for the group data.
+   *
+   * @param { string } peerId - account id of the user's target connected peer
+   * @param { string } peerName - account name of the user's target connected peer
+   * @param { string } chatId - chat id between the user & peer | group
+   * @param { iChatType } type - chat type of the user's target
+   * @param { boolean } availability - availability setting of the user target
+   * @param { boolean } fromPeer - flag indicating if the user target is from the peer list
+   *
+   * @constructor
+   */
   private constructor(
     private readonly peerId: string,
     private readonly peerName: string,
@@ -100,14 +129,45 @@ export class MessagesOptionsComponent extends Component<
   }
 
   // --------------------------
+  // ------- GET | SET --------
+  // --------------------------
+
+  static readonly getMsgOptsIncomingWrap = (): HTMLDivElement => {
+    return this.msgOptsIncomingWrap;
+  };
+  static readonly getMsgOptsOutgoingWrap = (): HTMLDivElement => {
+    return this.msgOptsOutgoingWrap;
+  };
+  static readonly getMsgOptsAdminsgWrap = (): HTMLDivElement => {
+    return this.msgOptsAdminsgWrap;
+  };
+  static readonly getMsgOptsMembersWrap = (): HTMLDivElement => {
+    return this.msgOptsMembersWrap;
+  };
+
+  // --------------------------
   // ----- EVENT HANDLERS -----
   // --------------------------
+
+  /**
+   * This function adds an event listener to message option head elements.
+   *
+   * @fires MouseEvent
+   */
   private chatToggleUserSection = (): void => {
     this.msgOptsHeads.forEach((head: HTMLDivElement) => {
       head.addEventListener("click", this.clickMsgOptsSectionHandler);
     });
   };
-  private clickMsgOptsSectionHandler = (e: Event): void => {
+
+  /**
+   * This callback listens to click events which will toggle visibility of specific message option sections.
+   *
+   * @param { MouseEvent } e
+   *
+   * @listens MouseEvent
+   */
+  private clickMsgOptsSectionHandler = (e: MouseEvent): void => {
     const headIcon: HTMLElement = (
       e.target as HTMLHeadingElement
     ).querySelector("i")! as HTMLElement;
@@ -117,6 +177,14 @@ export class MessagesOptionsComponent extends Component<
     headIcon.classList.toggle("chat-msg-opts-head-toggled");
     headSibling.classList.toggle("chat-msg-opts-content-toggle");
   };
+
+  /**
+   * This callback listens to click events which will emit a socket event to the server to respond to peer requests.
+   *
+   * @param { MouseEvent } e
+   *
+   * @listens MouseEvent
+   */
   private clickGroupRequest = (e: MouseEvent): void => {
     // DATA GATHERING
     const target = e.target as HTMLElement;
@@ -131,9 +199,10 @@ export class MessagesOptionsComponent extends Component<
     // VALIDATION
     const requestValid = Validate.patchRequestData(reqBody, action);
     if (!requestValid.isValid) {
-      console.error(`ERROR: client data for group request action is invalid`);
-      console.error(requestValid.error);
-      return;
+      return error.showComp(
+        `ERROR: client data for group request action is invalid`,
+        requestValid.error
+      );
     }
 
     // SOCKET REQUEST
@@ -145,7 +214,14 @@ export class MessagesOptionsComponent extends Component<
   // --------------------------
   // ----- CLASS UTILITY ------
   // --------------------------
-  private readonly getGroup = async (id: string) => {
+
+  /**
+   * This function requests an HTTP GET to the server to retrieve group data.
+   *
+   * @param { string } id - Group Id
+   * @returns { Promise<void> }
+   */
+  private readonly getGroup = async (id: string): Promise<void> => {
     let response!: iHttpResponse;
     try {
       response = await tryCatch(httpGetGroup, id);
@@ -165,7 +241,14 @@ export class MessagesOptionsComponent extends Component<
     // HTTP RESPONSE PROCESSING
     this.msgGrpInfo = response.data.data;
   };
-  private generateRequests() {
+
+  /**
+   * This function:
+   * - sends retrieved Group Data Requests to an HTML elements transforming function
+   * - decides type of rendition
+   * - & where to attach request renditions within Message Options Request Section
+   */
+  private generateRequests(): void {
     if (
       !this.msgGrpInfo ||
       typeof this.msgGrpInfo !== "object" ||
@@ -181,7 +264,7 @@ export class MessagesOptionsComponent extends Component<
     for (item of incoming) {
       MessagesOptionsComponent.createRequest(
         item,
-        MessagesOptionsComponent.msgOptsIncomingWrap,
+        MessagesOptionsComponent.getMsgOptsIncomingWrap(),
         "incoming"
       );
     }
@@ -189,11 +272,24 @@ export class MessagesOptionsComponent extends Component<
     for (item of outgoing) {
       MessagesOptionsComponent.createRequest(
         item,
-        MessagesOptionsComponent.msgOptsOutgoingWrap,
+        MessagesOptionsComponent.getMsgOptsOutgoingWrap(),
         "outgoing"
       );
     }
   }
+
+  /**
+   * This function
+   * - renders group request data to an HTML element and
+   * - attach request renditions within Message Options Request Section
+   *
+   * @param { iRequest } item - group request item
+   * @param { HTMLDivElement } wrapper
+   * @param { "incoming" | "outgoing" } type - request rendition section indicator
+   * @param { string } chatId - used to verify of the request item belongs to a user
+   *
+   * @static
+   */
   static readonly createRequest = (
     item: iRequest,
     wrapper: HTMLDivElement,
@@ -273,7 +369,9 @@ export class MessagesOptionsComponent extends Component<
     //   </p>
     // </div>;
   };
-  private generateAdmins() {
+
+  /** This function feeds array of group admins data HTML elements rendering function corresponding to group admins. */
+  private generateAdmins(): void {
     const admins = this.msgGrpInfo.relations as iRelation[];
     let admin: iRelation;
 
@@ -283,11 +381,23 @@ export class MessagesOptionsComponent extends Component<
 
       MessagesOptionsComponent.createAdmin(
         admin,
-        MessagesOptionsComponent.msgOptsAdminsgWrap
+        MessagesOptionsComponent.getMsgOptsAdminsgWrap()
       );
     }
   }
-  static readonly createAdmin = (item: iRelation, wrap: HTMLDivElement) => {
+
+  /**
+   * This function transforms group admin relation objects into a corresponding HTML element and attaches it to the Message Option.
+   *
+   * @param { iRelation } item - group relation item for admins
+   * @param { HTMLDivElement } wrap
+   *
+   * @static
+   */
+  static readonly createAdmin = (
+    item: iRelation,
+    wrap: HTMLDivElement
+  ): void => {
     const itemWrap = document.createElement("div");
     itemWrap.classList.add("chat-msg-opts-admin-item");
 
@@ -302,7 +412,9 @@ export class MessagesOptionsComponent extends Component<
     //   <p>admin name</p>
     // </div>;
   };
-  private generateMembers() {
+
+  /** This function feeds array of group members data HTML elements rendering function corresponding to group members. */
+  private generateMembers(): void {
     const members = this.msgGrpInfo.relations as iRelation[];
     let member: iRelation;
 
@@ -312,11 +424,23 @@ export class MessagesOptionsComponent extends Component<
 
       MessagesOptionsComponent.createMember(
         member,
-        MessagesOptionsComponent.msgOptsMembersWrap
+        MessagesOptionsComponent.getMsgOptsMembersWrap()
       );
     }
   }
-  static readonly createMember = (item: iRelation, wrap: HTMLDivElement) => {
+
+  /**
+   * This function transforms group member relation objects into a corresponding HTML element and attaches it to the Message Option.
+   *
+   * @param { iRelation } item - group relation item for non-admins
+   * @param { HTMLDivElement } wrap
+   *
+   * @static
+   */
+  static readonly createMember = (
+    item: iRelation,
+    wrap: HTMLDivElement
+  ): void => {
     const itemWrap = document.createElement("div");
     itemWrap.classList.add("chat-msg-opts-member-item");
 
@@ -350,6 +474,14 @@ export class MessagesOptionsComponent extends Component<
     //   </p>
     // </div>;
   };
+
+  /**
+   * This function creates an object which will be sent to the server to act upon a specific pending group-to-user request of the group
+   *
+   * @param { string } groupId - group id of the current message component instance
+   * @param { string } receiverId - target user, recipient of the request response
+   * @returns
+   */
   private createRequestBody(groupId: string, receiverId: string): iRequestBody {
     return {
       type: 3,
@@ -357,29 +489,57 @@ export class MessagesOptionsComponent extends Component<
       groupId: groupId,
     };
   }
-  static readonly deleteRequest = (requestItemId: string, chatId: string) => {
+
+  /**
+   * This function deletes a corresponding HTML element of amessage option comp request.
+   *
+   * @param { string } requestItemId
+   * @param { string } chatId
+   *
+   * @static
+   */
+  static readonly deleteRequest = (
+    requestItemId: string,
+    chatId: string
+  ): void => {
     if (this.sType === "user" || MessagesOptionsComponent.sChatId !== chatId)
       return;
 
     (
       [
-        ...MessagesOptionsComponent.msgOptsOutgoingWrap.children,
+        ...MessagesOptionsComponent.getMsgOptsOutgoingWrap().children,
       ] as HTMLDivElement[]
     ).forEach((html: HTMLDivElement) => {
       if (html.dataset.userId === requestItemId)
-        MessagesOptionsComponent.msgOptsOutgoingWrap.removeChild(html);
+        MessagesOptionsComponent.getMsgOptsOutgoingWrap().removeChild(html);
     });
 
     (
       [
-        ...MessagesOptionsComponent.msgOptsIncomingWrap.children,
+        ...MessagesOptionsComponent.getMsgOptsIncomingWrap().children,
       ] as HTMLDivElement[]
     ).forEach((html: HTMLDivElement) => {
       if (html.dataset.userId === requestItemId)
-        MessagesOptionsComponent.msgOptsIncomingWrap.removeChild(html);
+        MessagesOptionsComponent.getMsgOptsIncomingWrap().removeChild(html);
     });
   };
 
+  /**
+   * This function either:
+   * - calls for a new instance of this class
+   * - delete the instance of this class and all related data within
+   *
+   * @param { string } peerId - account id of the user's target connected peer
+   * @param { string } peerName - account name of the user's target connected peer
+   * @param { string } chatId - chat id between the user & peer | group
+   * @param { iChatType } type - chat type of the user's target
+   * @param { boolean } availability - availability setting of the user target
+   * @param { boolean } fromPeer - flag indicating if the user target is from the peer list
+   * @param { boolean } deleteInstance - flag indicating if user target comp is to be deleted
+   * @returns { MessagesOptionsComponent | null }
+   *
+   * @static
+   */
   static readonly getInstance = (
     peerId: string,
     peerName: string,
