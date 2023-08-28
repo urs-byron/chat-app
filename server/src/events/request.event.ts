@@ -41,6 +41,13 @@ import ------------- DONE
 comment ------------ DONE
 */
 
+/**
+ *
+ * @param { iGenRequestBody } data
+ * @param { Socket } soc
+ * @param { Map<string, Socket> } clients
+ * @returns
+ */
 export const postRequest = async (
   data: iGenRequestBody,
   soc: Socket,
@@ -228,6 +235,15 @@ export const postRequest = async (
 
 // SUB FUNCTIONS
 
+/**
+ * This function assigns variables their roles by name.
+ *
+ * @param { string } requestType { string }
+ * @param { string } userId
+ * @param { string } recipientId
+ * @param { string } groupId
+ * @returns { { requestPath: iGenRequestPath; senderId: string; receiverId: string } }
+ */
 export function configRequestVars(
   requestType: 1 | 2 | 3,
   userId: string,
@@ -247,6 +263,15 @@ export function configRequestVars(
   return { requestPath, senderId, receiverId };
 }
 
+/**
+ * This function retrieves & assigns corresponding user & recipient objects by request type.
+ *
+ * @param { 1 | 2 | 3 } requestType
+ * @param { string } senderId
+ * @param { string } receiverId
+ * @param { iUserDoc } reqUser
+ * @returns
+ */
 export async function getUserRecipient(
   requestType: 1 | 2 | 3,
   senderId: string,
@@ -284,6 +309,15 @@ export async function getUserRecipient(
   }
 }
 
+/**
+ * This function checks if user | group is alreaady connected to user | group.
+ *
+ * @param { string } senderId
+ * @param { string } receiverId
+ * @param { iUserDoc & iGroupDoc } user - user data object
+ * @param { iUserDoc & iGroupDoc } recipient  - user data object
+ * @returns { Promise<void | APIError | Error> }
+ */
 export async function validateWithinUserReqErr(
   senderId: string,
   receiverId: string,
@@ -317,6 +351,14 @@ export async function validateWithinUserReqErr(
   }
 }
 
+/**
+ * This function retrieves request aggregated document by request type.
+ *
+ * @param { string } receiverId
+ * @param { iUserDoc & iGroupDoc } user
+ * @param { iGenRequestPath } requestPath
+ * @returns
+ */
 export async function getUserReqs(
   receiverId: string,
   user: iUserDoc & iGroupDoc,
@@ -330,37 +372,21 @@ export async function getUserReqs(
 
   try {
     const pipeline = [
-      {
-        $match: {
-          str_id: { $eq: user.requests },
-        },
-      },
+      { $match: { str_id: { $eq: user.requests } } },
       {
         $project: {
           incoming: {
             $filter: {
               input: `$requests.${requestPath}.incoming`,
               as: "i",
-              cond: {
-                $or: [
-                  {
-                    $eq: ["$$i.accnt_id", receiverId],
-                  },
-                ],
-              },
+              cond: { $or: [{ $eq: ["$$i.accnt_id", receiverId] }] },
             },
           },
           outgoing: {
             $filter: {
               input: `$requests.${requestPath}.outgoing`,
               as: "o",
-              cond: {
-                $or: [
-                  {
-                    $eq: ["$$o.accnt_id", receiverId],
-                  },
-                ],
-              },
+              cond: { $or: [{ $eq: ["$$o.accnt_id", receiverId] }] },
             },
           },
         },
@@ -387,6 +413,16 @@ export async function getUserReqs(
   return { incoming, outgoing };
 }
 
+/**
+ * This function DELETE sender | recipient item within recipient | sender request docuemnt.
+ *
+ * @param { iUserDoc & iGroupDoc } user
+ * @param { iUserDoc & iGroupDoc } recipient
+ * @param { string } senderId
+ * @param { string } receiverId
+ * @param { iGenRequestPath } requestPath
+ * @returns { Promise<void | APIError | Error> }
+ */
 export async function deleteDbRequests(
   user: iUserDoc & iGroupDoc,
   recipient: iUserDoc & iGroupDoc,
@@ -394,16 +430,13 @@ export async function deleteDbRequests(
   receiverId: string,
   requestPath: iGenRequestPath
 ): Promise<void | APIError | Error> {
+  // DELETE recipient item within sender request docuemnt
   try {
     const updateResponse = await GenRequests.updateOne(
-      {
-        str_id: user.requests,
-      } as iGenRequests,
+      { str_id: user.requests } as iGenRequests,
       {
         $pull: {
-          [`requests.${requestPath}.incoming`]: {
-            accnt_id: receiverId,
-          },
+          [`requests.${requestPath}.incoming`]: { accnt_id: receiverId },
         },
       }
     );
@@ -416,17 +449,13 @@ export async function deleteDbRequests(
     return newApiError(500, "server is unable to update user's requests");
   }
 
-  // DELETE request item
+  // DELETE sender item within recipient request docuemnt
   try {
     const updateResponse = await GenRequests.updateOne(
-      {
-        str_id: recipient.requests,
-      } as iGenRequests,
+      { str_id: recipient.requests } as iGenRequests,
       {
         $pull: {
-          [`requests.${requestPath}.outgoing`]: {
-            accnt_id: senderId,
-          },
+          [`requests.${requestPath}.outgoing`]: { accnt_id: senderId },
         },
       }
     );
@@ -444,6 +473,13 @@ export async function deleteDbRequests(
   }
 }
 
+/**
+ * This function DELETEs sender | recipient items within recipient | sender request cache indexes.
+ *
+ * @param { string } senderId
+ * @param { string } receiverId
+ * @returns
+ */
 export async function deleteCacheRequests(
   senderId: string,
   receiverId: string
@@ -463,13 +499,23 @@ export async function deleteCacheRequests(
   }
 }
 
+/**
+ * This function UPDATEs sender | recipient items within recipient | sender request of their new request status in DB.
+ *
+ * @param { string } senderId
+ * @param { string } receiverId
+ * @param { iUserDoc & iGroupDoc } user - user data object
+ * @param { iUserDoc & iGroupDoc } recipient - recipient data object
+ * @param { iGenRequestPath } requestPath
+ * @returns { Promise<void | APIError | Error> }
+ */
 export async function updateDbRequests(
   senderId: string,
   receiverId: string,
   user: iUserDoc & iGroupDoc,
   recipient: iUserDoc & iGroupDoc,
   requestPath: iGenRequestPath
-) {
+): Promise<void | APIError | Error> {
   try {
     const updateResponse = await GenRequests.updateOne(
       {
@@ -521,6 +567,13 @@ export async function updateDbRequests(
   }
 }
 
+/**
+ * This function initiates cache transaction of UPDATING sender | recipient items within recipient | sender request of their new request status in their cache indexes.
+ *
+ * @param { string } senderId
+ * @param { string } receiverId
+ * @returns { Promise<void | APIError | Error> }
+ */
 export async function updateCacheRequests(
   senderId: string,
   receiverId: string
@@ -548,6 +601,13 @@ export async function updateCacheRequests(
   }
 }
 
+/**
+ * This function retrieves the set of a supposedly newly cached requests from user & recipient.
+ *
+ * @param { string } receiverId
+ * @param { string } senderId
+ * @returns { Promise<iNewGenRequests | APIError | Error> }
+ */
 export async function getNewCacheRequests(
   receiverId: string,
   senderId: string
@@ -573,6 +633,17 @@ export async function getNewCacheRequests(
   }
 }
 
+/**
+ * This function emits socket events to available sender & recipient regarding a successful response to REQUEST POST.
+ *
+ * @param { 1 | 2 | 3 } type - request type
+ * @param { string } senderId
+ * @param { string } receiverId
+ * @param { Socket } soc
+ * @param { Map<string, Socket> } clients - set of clients
+ * @param { iNewGenRequests } newReqs - newly updated requests
+ * @returns { Promise<void | APIError | Error> }
+ */
 export async function postRequestR(
   type: 1 | 2 | 3,
   senderId: string,
@@ -648,6 +719,13 @@ import ------------- DONE
 comment ------------ DONE
 */
 
+/**
+ * @param { iGenRequestBody } reqBody
+ * @param { iGenRequestActions } action
+ * @param { Socket } soc
+ * @param { Map<string, Socket> } clients
+ * @returns { Promise<boolean | undefined> }
+ */
 export const patchRequest = async (
   reqBody: iGenRequestBody,
   action: iGenRequestActions,
@@ -745,13 +823,13 @@ export const patchRequest = async (
 
     // UPDATE hBump
     if (type !== 3) {
-      userHBump = await getUserHBump(senderId, user, tx);
+      userHBump = await getHBump(senderId, user, tx);
       if (userHBump instanceof APIError || userHBump instanceof Error)
         return soc.emit(socket.serverErrRev, userHBump);
     }
 
     if (type !== 2) {
-      recipientHBump = await getRecipientHBump(receiverId, recipient, tx);
+      recipientHBump = await getHBump(receiverId, recipient, tx);
       if (recipientHBump instanceof APIError || recipientHBump instanceof Error)
         return soc.emit(socket.serverErrRev, recipientHBump);
     }
@@ -831,6 +909,15 @@ export const patchRequest = async (
 
 // SUB FUNCTIONS
 
+/**
+ * This function assigns variables their roles by name.
+ *
+ * @param { string } userId
+ * @param { string } recipientId
+ * @param { string } groupId
+ * @param { 1 | 2 | 3 } type
+ * @returns { { senderId: string; receiverId: string } }
+ */
 export function configPatchReqVar(
   userId: string,
   recipientId: string,
@@ -844,6 +931,13 @@ export function configPatchReqVar(
   return { senderId, receiverId };
 }
 
+/**
+ * This function checks if request respondent is an admin.
+ *
+ * @param { string } userId
+ * @param { iUserDoc | iGroupDoc } user
+ * @returns { Promise<void | APIError | Error> }
+ */
 export async function isNotAdminErr(
   userId: string,
   user: iUserDoc | iGroupDoc
@@ -867,6 +961,15 @@ export async function isNotAdminErr(
   }
 }
 
+/**
+ * This function assigns variables their roles by name.
+ *
+ * @param { string } senderId
+ * @param { string } receiverId
+ * @param { iGenRequestActions } action
+ * @param { 1 | 2 | 3 } type
+ * @returns
+ */
 export function configPatchReqVar2(
   senderId: string,
   receiverId: string,
@@ -925,6 +1028,19 @@ export function configPatchReqVar2(
   };
 }
 
+/**
+ * This function updates the sender & receiver's request document with new status.
+ *
+ * @param { iUserDoc & iGroupDoc } user
+ * @param { iUserDoc & iGroupDoc } recipient
+ * @param { string } senderId
+ * @param { string } receiverId
+ * @param { "incoming" | "outgoing" } userList
+ * @param { "incoming" | "outgoing" } recipientList
+ * @param { iGenRequestState } newStatus
+ * @param { iGenRequestPath } requestPath - file path within the object
+ * @returns { Promise<void | APIError | Error> }
+ */
 export async function updateDbPatchReqs(
   user: iUserDoc & iGroupDoc,
   recipient: iUserDoc & iGroupDoc,
@@ -980,8 +1096,18 @@ export async function updateDbPatchReqs(
   }
 }
 
-export async function getUserHBump(
-  senderId: string,
+/**
+ * This function:
+ * - retrieves sender hBump from DB
+ * - adds cache hBump increment to pending transaction
+ *
+ * @param { string } senderId
+ * @param { iUserDoc & iGroupDoc } user
+ * @param { any } tx - Redis Transaction Command Variable
+ * @returns { Promise<APIError | Error | number> }
+ */
+export async function getHBump(
+  userId: string,
   user: iUserDoc & iGroupDoc,
   tx: any
 ): Promise<APIError | Error | number> {
@@ -996,7 +1122,7 @@ export async function getUserHBump(
       return newApiError(404, "user | group relations not found");
     }
 
-    tx.json.numIncrBy(redis.relationItemName(senderId), "$.hBump", 1);
+    tx.json.numIncrBy(redis.relationItemName(userId), "$.hBump", 1);
 
     return userHBump.relations.hBump + 1;
   } catch (err) {
@@ -1005,6 +1131,7 @@ export async function getUserHBump(
   }
 }
 
+/** DUPLICATE */
 export async function getRecipientHBump(
   receiverId: string,
   recipient: iUserDoc & iGroupDoc,
@@ -1022,6 +1149,7 @@ export async function getRecipientHBump(
     }
 
     tx.json.numIncrBy(redis.relationItemName(receiverId), "$.hBump", 1);
+
     return recipientHBump.relations.hBump + 1;
   } catch (err) {
     await redis.discard();
@@ -1029,6 +1157,14 @@ export async function getRecipientHBump(
   }
 }
 
+/**
+ * This function creates a new exclusive chat related documents for type 1 requests.
+ *
+ * @param { iUserDoc & iGroupDoc } user
+ * @param { iUserDoc & iGroupDoc } recipient
+ * @param { 1 | 2 | 3 } type
+ * @returns { Promise<string | APIError | Error> }
+ */
 export async function createNewChat(
   user: iUserDoc & iGroupDoc,
   recipient: iUserDoc & iGroupDoc,
@@ -1063,39 +1199,47 @@ export async function createNewChat(
   return chat_id;
 }
 
+/**
+ * This function
+ * - updates relations doc collection
+ * - initiate update transaction for relations cache index
+ *
+ * @param { string } senderId
+ * @param { string } receiverId
+ * @param { iUserDoc & iGroupDoc } user
+ * @param { iUserDoc & iGroupDoc } recipient
+ * @param { number } userHBump
+ * @param { number } recipientHBump
+ * @param { iRelation } newUserRelation
+ * @param { iRelation } newRecipientRelation
+ * @param { any } tx - Redis Transaction Command Variable
+ * @returns
+ */
 export async function updateDbRels(
   senderId: string,
   receiverId: string,
   user: iUserDoc & iGroupDoc,
   recipient: iUserDoc & iGroupDoc,
-  userHBump: any,
-  recipientHBump: any,
+  userHBump: number,
+  recipientHBump: number,
   newUserRelation: iRelation,
   newRecipientRelation: iRelation,
   tx: any
 ): Promise<void | APIError | Error> {
   try {
     const userUpdateResponse = await GenRelations.updateOne(
-      {
-        str_id: user.relations,
-      } as iGenRelations,
+      { str_id: user.relations } as iGenRelations,
       {
         "relations.hBump": userHBump,
-        $push: {
-          "relations.list": newUserRelation,
-        },
+        $push: { "relations.list": newUserRelation },
       }
     );
 
     const recUpdateResponse = await GenRelations.updateOne(
-      {
-        str_id: recipient.relations,
-      } as iGenRelations,
+      { str_id: recipient.relations } as iGenRelations,
       {
         "relations.hBump": recipientHBump,
-        $push: {
-          "relations.list": newRecipientRelation,
-        },
+        $push: { "relations.list": newRecipientRelation },
       }
     );
 
@@ -1128,6 +1272,12 @@ export async function updateDbRels(
   }
 }
 
+/**
+ * This function executes pending redis transaction.
+ *
+ * @param { any } tx - Redis Transaction Command Variable
+ * @returns { Promise<void | APIError | Error> }
+ */
 export async function executeCacheTransaction(
   tx: any
 ): Promise<void | APIError | Error> {
@@ -1142,6 +1292,12 @@ export async function executeCacheTransaction(
   }
 }
 
+/**
+ * This function retrieves group chat id from cache.
+ *
+ * @param { string } groupId
+ * @returns { Promise<string | APIError | Error> }
+ */
 export async function getGroupChatId(
   groupId: string
 ): Promise<string | APIError | Error> {
@@ -1160,6 +1316,20 @@ export async function getGroupChatId(
   }
 }
 
+/**
+ * This function emits socket events to available sender & recipient regarding a successful response to REQUEST POST.
+ *
+ * @param { 1 | 2 | 3 } reqType
+ * @param { iGenRequestActions } action
+ * @param { string } senderId
+ * @param { string } receiverId
+ * @param { iGenRequestState } newStatus
+ * @param { Socket } soc
+ * @param { Map<string, Socket> } clients
+ * @param { iRelation } newUserRelation
+ * @param { iRelation } newRecipientRelation
+ * @returns { Promise<void | APIError | Error> }
+ */
 export async function patchRequestR(
   reqType: 1 | 2 | 3,
   action: iGenRequestActions,

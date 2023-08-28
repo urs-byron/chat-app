@@ -1,14 +1,23 @@
 import { Socket } from "socket.io";
 import { iRelation } from "../models/gen.imodel";
-import { APIError, newApiError } from "../global/httpErrors.global";
-import { RedisMethods as redis } from "../services/redis.srvcs";
 import { GenRelations } from "../models/gen.model";
 import { ChatMessages } from "../models/chat.model";
 import { ValidateMethods } from "../util/validate.util";
 import { iUser, iUserDoc } from "../models/user.imodel";
-import { iChat, iChatType, iMsgBody } from "../models/chat.imodel";
+import { APIError, newApiError } from "../global/httpErrors.global";
+import { RedisMethods as redis } from "../services/redis.srvcs";
 import { executeCacheTransaction } from "./request.event";
+import { iChat, iChatType, iMsgBody } from "../models/chat.imodel";
 
+/**
+ * This function contains steps executed after a user sent a message over socket.
+ *
+ * @param { iMsgBody } data - message object sent over socket
+ * @param { string } recipientId
+ * @param { iChatType } type
+ * @param { Socket } soc
+ * @returns { Promise<iMsgBody | APIError | Error> }
+ */
 export const postMessage = async (
   data: iMsgBody,
   recipientId: string,
@@ -43,14 +52,7 @@ export const postMessage = async (
     if (recipientObj instanceof APIError || recipientObj instanceof Error)
       return recipientObj;
 
-    // const recipientObj = (
-    //   await redis.client.ft.search(
-    //     redis.userIdxStr,
-    //     `@accnt_id:(${recipientId})`
-    //   )
-    // ).documents[0].value as unknown as iUser;
-
-    const r = await updateRelDocs(
+    const r = await bumpRelDocs(
       user.act_id.accnt_id,
       user.relations,
       recipientId,
@@ -59,47 +61,12 @@ export const postMessage = async (
     );
     if (r instanceof APIError || r instanceof Error) return r;
 
-    // const ur = await GenRelations.updateOne(
-    //   {
-    //     str_id: user.relations,
-    //     "relations.list": {
-    //       $elemMatch: { accnt_id: recipientId } as iRelation,
-    //     },
-    //   },
-    //   { $inc: { ["relations.hBump"]: 1, [`relations.list.$.bump`]: 1 } }
-    // );
-
-    // const rr = await GenRelations.updateOne(
-    //   {
-    //     str_id: recipientObj.relations,
-    //     [`relations.list`]: { $elemMatch: { accnt_id: user.act_id.accnt_id } },
-    //   },
-    //   { $inc: { ["relations.hBump"]: 1, [`relations.list.$.bump`]: 1 } }
-    // );
-
     // CACHE UPDATE
     // --- set | hBump
 
-    multiCacheRelsBump(user.act_id.accnt_id, recipientId, type, tx);
-
-    // tx.json.numIncrBy(
-    //   redis.relationItemName(user.act_id.accnt_id),
-    //   "$.hBump",
-    //   1
-    // );
-    // tx.json.numIncrBy(redis.relationItemName(recipientId), "$.hBump", 1);
-    // tx.json.numIncrBy(
-    //   redis.relationSetItemName(user.act_id.accnt_id, recipientId),
-    //   "$.bump",
-    //   1
-    // );
-    // tx.json.numIncrBy(
-    //   redis.relationSetItemName(recipientId, user.act_id.accnt_id),
-    //   "$.bump",
-    //   1
-    // );
+    txRelsBumpCache(user.act_id.accnt_id, recipientId, type, tx);
   } else {
-    const members = await getGroupMemberNames(recipientId);
+    const members = await getGroupMemberIDs(recipientId);
     if (members instanceof APIError || members instanceof Error) return members;
 
     let member: iRelation;
@@ -110,14 +77,7 @@ export const postMessage = async (
       if (userCache instanceof APIError || userCache instanceof Error)
         return userCache;
 
-      // userCache = (
-      //   await redis.client.ft.search(
-      //     redis.userIdxStr,
-      //     `@accnt_id:(${member.accnt_id})`
-      //   )
-      // ).documents[0].value as unknown as iUser;
-
-      const r = await updateRelDocs(
+      const r = await bumpRelDocs(
         "",
         userCache.relations,
         recipientId,
@@ -126,26 +86,7 @@ export const postMessage = async (
       );
       if (r instanceof APIError || r instanceof Error) return r;
 
-      // const mr = await GenRelations.updateOne(
-      //   {
-      //     str_id: userCache.relations,
-      //     [`relations.list`]: { $elemMatch: { accnt_id: recipientId } },
-      //   },
-      //   { $inc: { ["relations.hBump"]: 1, [`relations.list.$.bump`]: 1 } }
-      // );
-
-      multiCacheRelsBump(userCache.accnt_id, recipientId, type, tx);
-
-      // tx.json.numIncrBy(
-      //   redis.relationItemName(userCache.accnt_id),
-      //   "$.hBump",
-      //   1
-      // );
-      // tx.json.numIncrBy(
-      //   redis.relationSetItemName(userCache.accnt_id, recipientId),
-      //   "$.bump",
-      //   1
-      // );
+      txRelsBumpCache(userCache.accnt_id, recipientId, type, tx);
     }
   }
 
@@ -155,6 +96,14 @@ export const postMessage = async (
   return data;
 };
 
+/**
+ * This function validates postMessage inputs.
+ *
+ * @param { iMsgBody } data - message object sent over socket
+ * @param { string } recipientId
+ * @param { string } chatId
+ * @returns { APIError | Error | void }
+ */
 export function validatePostMessage(
   data: iMsgBody,
   recipientId: string,
@@ -165,6 +114,10 @@ export function validatePostMessage(
     return newApiError(400, "client sent invalid message data", v.error);
 }
 
+/**
+ * @param { string } chatId
+ * @returns { Promise<APIError | Error | iChat> }
+ */
 export async function getChatObj(
   chatId: string
 ): Promise<APIError | Error | iChat> {
@@ -179,6 +132,15 @@ export async function getChatObj(
   }
 }
 
+/**
+ * This function stores sent message to DB and cache.
+ *
+ * @param { string } chatId
+ * @param { iChat } chatObj
+ * @param { iMsgBody } data
+ * @param { any } tx
+ * @returns { Promise<void | APIError | Error> }
+ */
 export async function storeMsgCacheDoc(
   chatId: string,
   chatObj: iChat,
@@ -210,6 +172,12 @@ export async function storeMsgCacheDoc(
   }
 }
 
+/**
+ * This function retrieves user object from cache.
+ *
+ * @param { string } Id
+ * @returns { Promise<iUser | APIError | Error> }
+ */
 export async function getUserCache(
   Id: string
 ): Promise<iUser | APIError | Error> {
@@ -224,7 +192,17 @@ export async function getUserCache(
   }
 }
 
-export async function updateRelDocs(
+/**
+ * This function increments the sender & recipient relations documents hBump
+ *
+ * @param { string } userId
+ * @param { string } userRelId
+ * @param { string } recipientId
+ * @param { string } recipientRelId
+ * @param { iChatType } type
+ * @returns
+ */
+export async function bumpRelDocs(
   userId: string,
   userRelId: string,
   recipientId: string,
@@ -278,7 +256,15 @@ export async function updateRelDocs(
     }
 }
 
-export function multiCacheRelsBump(
+/**
+ * This function initiates Redis transaction for sender & recipient relations bump increment.
+ *
+ * @param { string } userId
+ * @param { string } recipientId
+ * @param { iChatType } type
+ * @param { any } tx - Redis Transaction Command Variable
+ */
+export function txRelsBumpCache(
   userId: string,
   recipientId: string,
   type: iChatType,
@@ -301,7 +287,13 @@ export function multiCacheRelsBump(
   }
 }
 
-export async function getGroupMemberNames(
+/**
+ * This function retrieves account ID of members from a group.
+ *
+ * @param { string } groupId
+ * @returns { Promise<iRelation[] | APIError | Error> }
+ */
+export async function getGroupMemberIDs(
   groupId: string
 ): Promise<iRelation[] | APIError | Error> {
   try {
@@ -317,6 +309,12 @@ export async function getGroupMemberNames(
   }
 }
 
+/**
+ * This function executes redis transaction.
+ *
+ * @param { any } tx - Redis Transaction Commnad Variable
+ * @returns
+ */
 export async function transactCache(tx: any) {
   try {
     await tx.exec();
