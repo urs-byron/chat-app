@@ -5,6 +5,11 @@ import { RedisMethods as redis } from "../services/redis.srvcs";
 import { iChat, iChatMsgs, iChatRules } from "../models/chat.imodel";
 import { Chat, ChatMessages, ChatRules } from "../models/chat.model";
 
+/**
+ * This class holds functions which manages DB procedures mainly in regards with chat data.
+ *
+ * @extends Utility
+ */
 export class ChatMethods extends Utility {
   static instance: ChatMethods;
 
@@ -12,6 +17,11 @@ export class ChatMethods extends Utility {
     super();
   }
 
+  /**
+   * This function creates a pair | group exclusive document to contain their chat messages.
+   *
+   * @returns { Promise<APIError | Error | string> }
+   */
   private async createChatMsgs(): Promise<APIError | Error | string> {
     const str_id: string = randomUUID().replace(/-/g, "");
     const new_msgs: iChatMsgs = {
@@ -32,6 +42,11 @@ export class ChatMethods extends Utility {
     }
   }
 
+  /**
+   * This function creates a pair | group exclusive document to contain their chat rules.
+   *
+   * @returns { Promise<APIError | Error | string> }
+   */
   private async createChatRules(): Promise<APIError | Error | string> {
     const str_id: string = randomUUID().replace(/-/g, "");
     const new_rules: iChatRules = {
@@ -48,22 +63,32 @@ export class ChatMethods extends Utility {
     }
   }
 
+  /**
+   * This function creates a pair | group exclusive document to contain their chat rules.
+   *
+   * @returns { Promise<APIError | Error | string> }
+   */
   static async createChat(): Promise<APIError | Error | string> {
+    // Get ChatMethods instance
     const chatMethods: ChatMethods = ChatMethods.getInstance();
+
+    // Create chat id
     const chat_id: string = randomUUID().replace(/-/g, "");
-    let new_chat: iChat;
-    const messagesId = await chatMethods.createChatMsgs();
+
+    const msgsId = await chatMethods.createChatMsgs();
+    if (msgsId instanceof APIError || msgsId instanceof Error) return msgsId;
+
     const rulesId = await chatMethods.createChatRules();
-    const newChatObj = {
+    if (rulesId instanceof APIError || rulesId instanceof Error) return rulesId;
+
+    /** Pair | Group exclusive document to contain their chat related IDs. */
+    const newChatObj: iChat = {
       chat_id: chat_id,
-      msgs_id: messagesId,
+      msgs_id: msgsId,
       rules_id: rulesId,
     };
 
-    if (messagesId instanceof APIError || messagesId instanceof Error)
-      return messagesId;
-    if (rulesId instanceof APIError || rulesId instanceof Error) return rulesId;
-
+    // Save to MongoDB
     try {
       await Chat.create(newChatObj);
     } catch (err) {
@@ -74,11 +99,13 @@ export class ChatMethods extends Utility {
       );
     }
 
+    // Save to Redis
+    const tx = redis.client.multi();
+    const keyName = redis.chatItemName(chat_id);
+    tx.json.set(keyName, "$", redis.redifyObj(newChatObj));
+    // tx.expire(keyName, redis.days(3));
+
     try {
-      const tx = redis.client.multi();
-      const keyName = redis.chatItemName(chat_id);
-      tx.json.set(keyName, "$", redis.redifyObj(newChatObj));
-      // tx.expire(keyName, redis.days(3));
       await tx.exec();
       return chat_id;
     } catch (err) {

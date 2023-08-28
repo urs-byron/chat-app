@@ -9,6 +9,13 @@ import { RedisMethods as redis } from "../services/redis.srvcs";
 import { APIError, newApiError } from "../global/httpErrors.global";
 import { randomUUID, randomBytes, pbkdf2Sync } from "node:crypto";
 
+/**
+ * This class holds functions related initialization of user data:
+ * - General Documents in DB
+ * - User Salt Hash Generation
+ *
+ * @extends Utility
+ */
 export class UserMethods extends Utility {
   static instance: UserMethods | null;
 
@@ -16,12 +23,24 @@ export class UserMethods extends Utility {
     super();
   }
 
-  static async createUser(
+  /**
+   * This function is creates required user initial documents & indexes:
+   * - security
+   * - requests
+   * - relations
+   *
+   * @param { string } [id] - optional since Sign-On accounts already have their IDs
+   * @param { string } username
+   * @param { iGenSecuritySH } [sh] - optional since Sign-On accounts don't have password
+   * @param { iUserType } type
+   * @returns
+   */
+  static readonly createUser = async (
     id: string | null,
     username: string,
     sh: iGenSecuritySH | null,
     type: iUserType
-  ): Promise<iUser | APIError | Error> {
+  ): Promise<iUser | APIError | Error> => {
     const optId: string = id ? id : randomUUID().replace(/-/g, "");
     const genProp = await GeneralMethods.createGenData(chatType.user, sh, null);
 
@@ -69,12 +88,18 @@ export class UserMethods extends Utility {
     } catch (err) {
       return newApiError(500, "server failed to create user", err);
     }
-  }
+  };
 
-  static generateHash(p: string): iGenSecuritySH {
+  /**
+   * This function generates hash & salt for a corresponding password.
+   *
+   * @param { string } password
+   * @returns { iGenSecuritySH }
+   */
+  static readonly generateHash = (password: string): iGenSecuritySH => {
     const salt: string = randomBytes(32).toString("hex");
     const hash: string = pbkdf2Sync(
-      p,
+      password,
       salt as BinaryType,
       10000,
       64,
@@ -82,10 +107,10 @@ export class UserMethods extends Utility {
     ).toString("hex");
 
     return { salt: salt, hash: hash };
-  }
+  };
 
-  static getInstance(): UserMethods {
+  static readonly getInstance = (): UserMethods => {
     if (!this.instance) this.instance = new UserMethods();
     return this.instance;
-  }
+  };
 }

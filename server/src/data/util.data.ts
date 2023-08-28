@@ -1,6 +1,15 @@
 import { Model } from "mongoose";
 
 export class Utility {
+  /**
+   *  This function shortens required document creation syntax.
+   *
+   * @param { Model<any> } model
+   * @param { any } new_obj
+   * @returns { Promise<Error | null> }
+   *
+   * @protected
+   */
   protected async createDBData(
     model: Model<any>,
     new_obj: any

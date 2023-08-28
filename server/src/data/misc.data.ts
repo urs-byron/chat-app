@@ -1,8 +1,8 @@
-import { iUser, iUserDoc } from "../models/user.imodel";
-import { iGroup, iGroupDoc } from "../models/group.imodel";
 import { Utility } from "./util.data";
 import { chatType } from "../models/user.model";
 import { randomUUID } from "node:crypto";
+import { iUser, iUserDoc } from "../models/user.imodel";
+import { iGroup, iGroupDoc } from "../models/group.imodel";
 import { RedisMethods as redis } from "../services/redis.srvcs";
 import { APIError, newApiError } from "../global/httpErrors.global";
 import { iChatType, memberValues } from "../models/chat.imodel";
@@ -22,6 +22,11 @@ import {
   iRelation,
 } from "../models/gen.imodel";
 
+/**
+ * This class holds functions related to creating General User | Group unique documents.
+ *
+ * @extends Utility
+ */
 export class GeneralMethods extends Utility {
   static instance: GeneralMethods | null = null;
 
@@ -29,11 +34,20 @@ export class GeneralMethods extends Utility {
     super();
   }
 
+  /**
+   * This function creates security settings document for user | group.
+   *
+   * @param { iChatType } type - user type
+   * @param { iGenSecuritySH | null } [sh] - optional security data
+   * @returns { Promise<string | APIError | Error> }
+   */
   private async createSecurity(
     type: iChatType,
     sh: iGenSecuritySH | null
   ): Promise<string | APIError | Error> {
     const str_id: string = randomUUID().replace(/-/g, "");
+
+    /** Security Data - salt & hash is optional since Sign-On accounts don't have them. */
     const new_security: iGenSecurity =
       type === "user"
         ? {
@@ -61,6 +75,11 @@ export class GeneralMethods extends Utility {
     }
   }
 
+  /**
+   * This function creates am initial request document for the user | group.
+   *
+   * @returns { Promise<string | APIError | Error> }
+   */
   private async createRequests(): Promise<string | APIError | Error> {
     const str_id: string = randomUUID().replace(/-/g, "");
     let new_requests: iGenRequests = {
@@ -85,6 +104,13 @@ export class GeneralMethods extends Utility {
     }
   }
 
+  /**
+   * This function creates am initial relations document for the user | group.
+   *
+   * @param { iChatType } type
+   * @param { memberValues } admin - optional initial relation item if type is 'group'
+   * @returns { Promise<string | APIError | Error> }
+   */
   private async createRelations(
     type: iChatType,
     admin: memberValues
@@ -93,7 +119,6 @@ export class GeneralMethods extends Utility {
     let new_relations: iGenRelations;
 
     // filter - designated null input per chat type
-
     type === chatType.group
       ? (new_relations = {
           str_id: str_id,
@@ -129,28 +154,44 @@ export class GeneralMethods extends Utility {
       return newApiError(500, "server failed to create user relations", err);
     }
   }
+
+  /**
+   * This function creates am initial general data for the user | group:
+   * - security
+   * - requests
+   * - relations
+   *
+   * @param { iChatType } type
+   * @param { iGenSecuritySH | null } [sh] - optional salt & hash items if type is 'user'
+   * @param { memberValues | null } [admin] - optional initial relation item if type is 'group'
+   * @returns
+   *
+   * @static
+   */
   static async createGenData(
     type: iChatType,
     sh: iGenSecuritySH | null,
     admin: memberValues | null
-  ) {
+  ): Promise<
+    | {
+        securityId: string;
+        requestId: string;
+        relationId: string;
+      }
+    | APIError
+    | Error
+  > {
     const methods: GeneralMethods = this.getInstace();
 
-    const requests_id: string | APIError | Error =
-      await methods.createRequests();
-    const relations_id: string | APIError | Error =
-      await methods.createRelations(type, admin!);
-    const security_id: string | APIError | Error = await methods.createSecurity(
-      type,
-      sh
-    );
-
+    const requests_id = await methods.createRequests();
     if (requests_id instanceof APIError || requests_id instanceof Error) {
       return requests_id;
     }
+    const relations_id = await methods.createRelations(type, admin!);
     if (relations_id instanceof APIError || relations_id instanceof Error) {
       return relations_id;
     }
+    const security_id = await methods.createSecurity(type, sh);
     if (security_id instanceof APIError || security_id instanceof Error) {
       return security_id;
     }
@@ -163,6 +204,20 @@ export class GeneralMethods extends Utility {
   }
 
   // UTILITY FUNCTION
+
+  /**
+   * This function creates new (1) document property array item & (2) cache for user | group related transaction.
+   *
+   * @param { iUser & iGroup & iUserDoc & iGroupDoc } user - sender account object
+   * @param { string } userId
+   * @param {  iUserDoc & iGroupDoc } recipient - recipient account object
+   * @param { string } recipientId
+   * @param { 1 | 2 | 3 } requestType
+   * @param { "invitations" | "memberships" } requestPath - document file patch
+   * @returns { Promise<APIError | Error | iNewGenRequests> }
+   *
+   * @static
+   */
   static async createRequest(
     user: iUser & iGroup & iUserDoc & iGroupDoc,
     userId: string,
@@ -228,6 +283,18 @@ export class GeneralMethods extends Utility {
     };
   }
 
+  /**
+   * This function creates a relation document for a user | group.
+   *
+   * @param { memberValues } member - newly connected peer | group to user
+   * @param { iChatType } type
+   * @param { boolean } isAdmin - admin authority indicator
+   * @param { string } chat_id
+   * @param { number } hBump - current highest user bump
+   * @returns { iRelation }
+   *
+   * @static
+   */
   static createRelationObj(
     member: memberValues,
     type: iChatType,
