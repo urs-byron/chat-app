@@ -143,6 +143,16 @@ export const getGroup: RequestHandler = async (req, res, next) => {
 
 // SUB FUNCTIONS
 
+/**
+ * This function
+ * - retrieves group data from cache
+ * - else from DB
+ * - - then cache the data from DB
+ *
+ * @param { string } groupId
+ * @param { any } tx - Redis Aggregate Command Variable
+ * @returns { Promise<iGroupDoc | APIError | Error> }
+ */
 export async function getGroupDoc(
   groupId: string,
   tx: any
@@ -190,7 +200,15 @@ export async function getGroupDoc(
   return group;
 }
 
-async function getRelCaches(id: string) {
+/**
+ * This function returns a set of iRelation from cache.
+ *
+ * @param { string } id
+ * @returns { Promise<[{ relations: iRelation[] }] | APIError | Error> }
+ */
+async function getRelCaches(
+  id: string
+): Promise<[{ relations: iRelation[] }] | APIError | Error> {
   let userRelations: any;
   try {
     userRelations = await redis.client.ft.aggregate(
@@ -221,6 +239,17 @@ async function getRelCaches(id: string) {
   return [{ relations: userRelations.results }];
 }
 
+/**
+ * // EDIT
+ * This function returns a transformed object data of the group.
+ *
+ * @param { string } groupId
+ * @param { iGroupDoc } group
+ * @param { iGenSecurityDoc } userSecurity
+ * @param { any } userRequests
+ * @param { any } userRelations
+ * @returns {{ accnt_name: string; accnt_id: string; privacy: any; requests: any; relations: any; }}
+ */
 export function configUserData(
   groupId: string,
   group: iGroupDoc,
@@ -293,6 +322,12 @@ export const getGroups: RequestHandler = async (req, res, next) => {
 
 // SUB FUNCTIONS
 
+/**
+ * This function returns relation cache set of a group.
+ *
+ * @param { string } userId
+ * @returns { Promise<iRelation[] | void | APIError | Error> }
+ */
 export async function getCacheGroupRels(
   userId: string
 ): Promise<iRelation[] | void | APIError | Error> {
@@ -323,26 +358,26 @@ export async function getCacheGroupRels(
   }
 }
 
+/**
+ * This function returns relation doc set of a group.
+ *
+ * @param { string} relationsId
+ * @returns
+ */
 export async function getGroupRelDocs(
   relationsId: string
 ): Promise<Array<iRelation> | APIError | Error> {
   let groups;
   try {
     groups = await GenRelations.aggregate([
-      {
-        $match: {
-          str_id: relationsId,
-        },
-      },
+      { $match: { str_id: relationsId } },
       {
         $project: {
           groups: {
             $filter: {
               input: "$relations.list",
               as: "l",
-              cond: {
-                $eq: ["$$l.type", "group"],
-              },
+              cond: { $eq: ["$$l.type", "group"] },
             },
           },
         },
@@ -357,6 +392,13 @@ export async function getGroupRelDocs(
   }
 }
 
+/**
+ * This function caches a set of iRelation to DB.
+ *
+ * @param { Array<iRelation> } groups
+ * @param { string } userId
+ * @returns { Promise<void | APIError | Error> }
+ */
 export async function txCacheGroupSet(
   groups: Array<iRelation>,
   userId: string
@@ -466,6 +508,13 @@ export const postGroup: RequestHandler = async (req, res, next) => {
 
 // SUB FUNCTIONS
 
+/**
+ * Input Validation
+ *
+ * @param { iNewGrpBody } newGrpBody
+ * @param { string } userId
+ * @returns { void | APIError | Error }
+ */
 export function validateNewGrp(
   newGrpBody: iNewGrpBody,
   userId: string
@@ -475,6 +524,12 @@ export function validateNewGrp(
     return newApiError(400, "new group data is invalid", grpBodyValid.error);
 }
 
+/**
+ * This function returns an error if a matching group name is found within cache.
+ *
+ * @param { string } grpName
+ * @returns { Promise<void | APIError | Error> }
+ */
 export async function sameCacheGrpNameErr(
   grpName: string
 ): Promise<void | APIError | Error> {
@@ -493,6 +548,12 @@ export async function sameCacheGrpNameErr(
   }
 }
 
+/**
+ * This function returns an error if a matching group name is found within DB.
+ *
+ * @param { string } grpName
+ * @returns
+ */
 export async function sameDbGrpNameErr(
   grpName: string
 ): Promise<void | APIError | Error> {
@@ -507,10 +568,27 @@ export async function sameDbGrpNameErr(
   }
 }
 
+/**
+ * This function caches the new group.
+ *
+ * @param { iGroup } new_grp - new group data object
+ * @param { any } tx - Redis Transaction Command Variable
+ */
 export function cacheNewGroup(new_grp: iGroup, tx: any) {
   tx.json.set(redis.grpItemName(new_grp.grp_id), "$", redis.redifyObj(new_grp));
 }
 
+/**
+ * This function
+ * - retrieves an incremented hBump from DB
+ * - initiates increment in cache relations hBump
+ * - returns incremented hBump
+ *
+ * @param { string } userId
+ * @param { string } relationsId
+ * @param { any } tx - Redis Transaction Command Variable
+ * @returns { Promise<number | APIError | Error> }
+ */
 export async function getDBUserHBump(
   userId: string,
   relationsId: string,
@@ -534,6 +612,14 @@ export async function getDBUserHBump(
   }
 }
 
+/**
+ * This function returns a relation object for new group members.
+ *
+ * @param { iGroup } new_grp
+ * @param { string } grpName
+ * @param { number } userBump
+ * @returns { iRelation }
+ */
 export function createGrpRelObj(
   new_grp: iGroup,
   grpName: string,
@@ -554,6 +640,18 @@ export function createGrpRelObj(
   return new_rel;
 }
 
+/**
+ * This function
+ * - updates user relation DB with new relation
+ * - initiates updates of user relation cache with new relation
+ *
+ * @param { string } userId
+ * @param { string } relationsId
+ * @param { number } userBump
+ * @param { iRelation } new_rel
+ * @param { any } tx - Redis Transaction Command Variable
+ * @returns { Promise<void | APIError | Error> }
+ */
 export async function updateUserDbRelations(
   userId: string,
   relationsId: string,
@@ -565,14 +663,10 @@ export async function updateUserDbRelations(
 
   try {
     userRelations = await GenRelations.updateOne(
-      {
-        str_id: relationsId,
-      } as iGenRelations,
+      { str_id: relationsId } as iGenRelations,
       {
         "relations.hBump": userBump,
-        $push: {
-          "relations.list": new_rel,
-        },
+        $push: { "relations.list": new_rel },
       }
     );
 
@@ -594,6 +688,12 @@ export async function updateUserDbRelations(
   }
 }
 
+/**
+ * This function executes pending cache transaction.
+ *
+ * @param { any } tx - Redis Transaction Command Variable
+ * @returns { Promise<void | APIError | Error> }
+ */
 export async function updateUserCacheRelations(
   tx: any
 ): Promise<void | APIError | Error> {

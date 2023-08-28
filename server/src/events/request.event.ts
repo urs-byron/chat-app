@@ -1101,7 +1101,7 @@ export async function updateDbPatchReqs(
  * - retrieves sender hBump from DB
  * - adds cache hBump increment to pending transaction
  *
- * @param { string } senderId
+ * @param { string } userId
  * @param { iUserDoc & iGroupDoc } user
  * @param { any } tx - Redis Transaction Command Variable
  * @returns { Promise<APIError | Error | number> }

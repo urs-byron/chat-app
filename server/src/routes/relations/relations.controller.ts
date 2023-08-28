@@ -100,6 +100,12 @@ export const getUserRelations: RequestHandler = async (req, res, next) => {
 
 // SUB FUNCTION
 
+/**
+ * Input Validation
+ *
+ * @param { iGenRelBody } reqBody
+ * @returns { void | APIError | Error }
+ */
 export function validateContactType(
   reqBody: iGenRelBody
 ): void | APIError | Error {
@@ -113,6 +119,13 @@ export function validateContactType(
     );
   }
 }
+
+/**
+ * This function returns group data object.
+ *
+ * @param { string } groupId
+ * @returns { Promise<iGroupDoc | APIError | Error> }
+ */
 export async function getDbGroup(
   groupId: string
 ): Promise<iGroupDoc | APIError | Error> {
@@ -127,6 +140,15 @@ export async function getDbGroup(
     return newApiError(500, "server is unable to search for group", err);
   }
 }
+
+/**
+ * Variable Assignment
+ *
+ * @param { iChatType } chatType
+ * @param { string } groupId
+ * @param { iUser } reqUser
+ * @returns { Promise<string | APIError | Error> }
+ */
 export async function assignRelationsId(
   chatType: iChatType,
   groupId: string,
@@ -144,6 +166,13 @@ export async function assignRelationsId(
 
   return relationsId;
 }
+
+/**
+ * This function returns the count of cache items in an index.
+ *
+ * @param { string } userId
+ * @returns { Promise<number | APIError | Error> }
+ */
 export async function checkRelSetCache(
   userId: string
 ): Promise<number | APIError | Error> {
@@ -162,6 +191,16 @@ export async function checkRelSetCache(
     );
   }
 }
+
+/**
+ * This function returns a complete array of cache relations.
+ *
+ * @param { string } userId
+ * @param { iContactTypes } conType - whether normal, muted, block
+ * @param { number } skip - starting number from where aggrevate will retrieve
+ * @param { number } limit - highest number of items permitted to return
+ * @returns { Promise<Array<iRelation> | APIError | Error> }
+ */
 export async function getCacheRels(
   userId: string,
   conType: iContactTypes,
@@ -216,6 +255,16 @@ export async function getCacheRels(
     );
   }
 }
+
+/**
+ * This function returns a complete array of docs relations.
+ *
+ * @param { string } relationsId
+ * @param { iContactTypes } conType - whether normal, muted, block
+ * @param { number } skip - starting number from where aggrevate will retrieve
+ * @param { number } limit - highest number of items permitted to return
+ * @returns { Promise<Array<iRelation> | APIError | Error> }
+ */
 export async function getDocRels(
   relationsId: string,
   conType: iContactTypes,
@@ -260,6 +309,14 @@ export async function getDocRels(
     );
   }
 }
+
+/**
+ * This function caches a set of iRelation.
+ *
+ * @param { string } userId
+ * @param { Array<iRelation> } relations
+ * @returns { Promise<APIError | Error | void> }
+ */
 export async function cacheRels(
   userId: string,
   relations: Array<iRelation>
@@ -322,6 +379,12 @@ export const patchRelations: RequestHandler = async (req, res, next) => {
 
 // SUB FUNCTION
 
+/**
+ * Input Validation
+ *
+ * @param { iRelationAct } relationAct - request body sent over HTTP
+ * @returns { APIError | Error | void }
+ */
 export function validatePatchRel(
   relationAct: iRelationAct
 ): APIError | Error | void {
@@ -333,6 +396,14 @@ export function validatePatchRel(
       relActValid.error
     );
 }
+
+/**
+ * This function updates user relations item doc with new relation status.
+ *
+ * @param { string } relationsId
+ * @param { iRelationAct } relationAct - request body sent over HTTP
+ * @returns { Promise<void | APIError | Error> }
+ */
 export async function updateDbUserRelations(
   relationsId: string,
   relationAct: iRelationAct
@@ -371,6 +442,14 @@ export async function updateDbUserRelations(
     );
   }
 }
+
+/**
+ * This function updates user relations item cache with new relation status.
+ *
+ * @param { string } userId
+ * @param { iRelationAct } relationAct - request body sent over HTTP
+ * @returns
+ */
 export async function updateUserRelationCache(
   userId: string,
   relationAct: iRelationAct
