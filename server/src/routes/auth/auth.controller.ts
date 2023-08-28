@@ -51,6 +51,12 @@ export const getAuth: RequestHandler = async (req, res, next) => {
 
 // SUB FUNCTIONS
 
+/**
+ * INPUT VALIDATION
+ *
+ * @param { string } userId
+ * @returns { void | APIError | Error }
+ */
 export const validateAuth: (userId: string) => void | APIError | Error = (
   userId
 ) => {
@@ -64,6 +70,14 @@ export const validateAuth: (userId: string) => void | APIError | Error = (
   }
 };
 
+/**
+ * This function searches cache and returns
+ * - true, if matching user is found
+ * - false, if no matching user is found
+ *
+ * @param { string } userId
+ * @returns { Promise<boolean | APIError | Error> }
+ */
 export const matchRedisUser: (
   userId: string
 ) => Promise<boolean | APIError | Error> = async (userId) => {
@@ -82,6 +96,12 @@ export const matchRedisUser: (
   }
 };
 
+/**
+ * This function returns matching user from cache.
+ *
+ * @param { string } userId
+ * @returns { Promise<iUserDoc | null | APIError | Error> }
+ */
 export const matchMongoUser: (
   userId: string
 ) => Promise<iUserDoc | null | APIError | Error> = async (userId) => {
@@ -99,6 +119,13 @@ export const matchMongoUser: (
   }
 };
 
+/**
+ * This function initiates & executes a transaction to cache user.
+ *
+ * @param { string } userId
+ * @param { iUserDoc } user
+ * @returns { Promise<void | APIError | Error> }
+ */
 export const txRedisUser: (
   userId: string,
   user: iUserDoc

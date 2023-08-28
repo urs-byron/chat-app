@@ -49,6 +49,12 @@ export const postRegister: RequestHandler = async (req, res, next) => {
 
 // SUB FUNCTIONS
 
+/**
+ * This function returns error if no matching user is found from cache.
+ *
+ * @param { string } username
+ * @returns { Promise<void | APIError | Error> }
+ */
 export async function existingCacheUser(
   username: string
 ): Promise<void | APIError | Error> {
@@ -66,6 +72,12 @@ export async function existingCacheUser(
   }
 }
 
+/**
+ * This function returns error if no matching user is found from DB.
+ *
+ * @param { string } username
+ * @returns { Promise<void | APIError | Error> }
+ */
 export async function existingDBUser(
   username: string
 ): Promise<void | APIError | Error> {

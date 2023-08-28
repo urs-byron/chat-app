@@ -79,6 +79,12 @@ export const getChatMsgs: RequestHandler = async (req, res, next) => {
 
 // SUB FUNCTIONS
 
+/**
+ * Input Validation
+ *
+ * @param { iChatReqBody } reqBody - data sent over HTTP for input validation
+ * @returns { APIError | Error | void }
+ */
 export function validateChatReqBody(
   reqBody: iChatReqBody
 ): APIError | Error | void {
@@ -91,6 +97,12 @@ export function validateChatReqBody(
     );
 }
 
+/**
+ * This function returns ERROR if no message id is available to be returned.
+ *
+ * @param { string } chatId
+ * @returns { Promise<string | Error | APIError> }
+ */
 export async function getMsgsId(
   chatId: string
 ): Promise<string | Error | APIError> {
@@ -121,6 +133,12 @@ export async function getMsgsId(
   }
 }
 
+/**
+ * This function returns the number of cache items within the cache msgs index.
+ *
+ * @param { string } chatId
+ * @returns { Promise<number | APIError | Error> }
+ */
 export async function checkChatInfo(
   chatId: string
 ): Promise<number | APIError | Error> {
@@ -137,6 +155,14 @@ export async function checkChatInfo(
   }
 }
 
+/**
+ * This function will return a limited (skipped?) set of aggregated msg caches.
+ *
+ * @param { string } chatId
+ * @param { number } skip - starting number from where aggrevate will retrieve
+ * @param { number } limit - highest number of items permitted to return
+ * @returns
+ */
 export async function getCacheMsgs(
   chatId: string,
   skip: number,
@@ -169,6 +195,14 @@ export async function getCacheMsgs(
   }
 }
 
+/**
+ * This function will return a limited (skipped?) set of aggregated msg docs.
+ *
+ * @param { string } msgsId
+ * @param { number } skip - starting number from where aggrevate will retrieve
+ * @param { number } limit - highest number of items permitted to return
+ * @returns
+ */
 export async function getDocMsgs(
   msgsId: string,
   skip: number,
@@ -195,6 +229,13 @@ export async function getDocMsgs(
   }
 }
 
+/**
+ * This function caches set of chat msgs.
+ *
+ * @param { string } chatId
+ * @param { iMsgBody[] } msgs
+ * @returns { Promise<APIError | Error | void> }
+ */
 export async function cacheMsgs(
   chatId: string,
   msgs: iMsgBody[]
