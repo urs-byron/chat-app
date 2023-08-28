@@ -6,11 +6,17 @@ import { connect, disconnect } from "mongoose";
 import { Chat, ChatMessages, ChatRules } from "../models/chat.model";
 import { GenSecurity, GenRequests, GenRelations } from "../models/gen.model";
 
+/** This class holds function related to the configuring, connecting, disconnecting, & managing of MongoDB data. */
 export class MongoDBMethods {
   private static instance: MongoDBMethods;
   private static dbString: string;
   private static dbType: "dev" | "prod" | "test";
 
+  /**
+   * Upon instantiation, the contructor reads the environment variable to determine whether to what staging DB should the server connect.
+   *
+   * @constructor
+   */
   private constructor() {
     const server_env = process.env.SERVER_ENV;
 
@@ -28,12 +34,9 @@ export class MongoDBMethods {
     try {
       await connect(this.dbString, mongo_opts);
     } catch (err) {
-      const new_err = newServerError(
-        "cnfg",
-        "server failed connecting to mongoDB",
-        err
+      console.error(
+        newServerError("db", "server failed connecting to mongoDB", err)
       );
-      console.error(new_err);
     }
   };
   static readonly disconnect = async (): Promise<void> => {
@@ -42,8 +45,9 @@ export class MongoDBMethods {
       if (this.dbType !== "test")
         console.log(`Server <--> MongoDB-${this.dbType}`);
     } catch (err) {
-      console.error("server failed disconnecting from mongoDB");
-      console.log(err);
+      console.error(
+        newServerError("db", "server failed disconnecting from mongoDB", err)
+      );
     }
   };
 
@@ -55,6 +59,11 @@ export class MongoDBMethods {
   //   }
   // }
 
+  /**
+   * This function deletes data from all listed Models.
+   *
+   * @returns { Promise<void> }
+   */
   static readonly flush: () => Promise<void> = async () => {
     try {
       await User.deleteMany({});
