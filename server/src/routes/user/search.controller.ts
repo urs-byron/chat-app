@@ -79,6 +79,12 @@ export const postUserSearch: RequestHandler = async (req, res, next) => {
   return res.status(200).json({ statusCode: 200, data: publicUsers });
 };
 
+/**
+ * Variable Assignment
+ *
+ * @param { 0 | 1 } type - (0) user & (1) group
+ * @returns
+ */
 export function configSearch(type: 0 | 1): {
   model: Model<iUserDoc> | Model<iGroupDoc>;
   id: "act_id.accnt_id" | "grp_id";
@@ -123,6 +129,15 @@ export function configSearch(type: 0 | 1): {
     };
 }
 
+/**
+ * This function returns a matching object for DB aggregate pipeline.
+ *
+ * @param { string } userId
+ * @param { string } pattern
+ * @param { "act_id.accnt_id" | "grp_id" } id
+ * @param { "act_name" | "grp_name" } name
+ * @returns
+ */
 export function createSearchFilter(
   userId: string,
   pattern: string,
@@ -138,6 +153,13 @@ export function createSearchFilter(
   };
 }
 
+/**
+ * This function returns the total number of matching documents from a user | group collection.
+ *
+ * @param { Model<iUserDoc> | Model<iGroupDoc> } model
+ * @param { any } filter
+ * @returns
+ */
 export async function countMatch(
   model: Model<iUserDoc> | Model<iGroupDoc>,
   filter: any
@@ -151,6 +173,16 @@ export async function countMatch(
   }
 }
 
+/**
+ * This function returns an array users or groups from DB.
+ *
+ * @param { any } filter
+ * @param { number } skip
+ * @param { number } limit
+ * @param { Model<iUserDoc> | Model<iGroupDoc> } model
+ * @param { any } fields
+ * @returns { Promise<iUserDoc[] | iGroupDoc[] | APIError | Error> }
+ */
 export async function searchDbUserGroup(
   filter: any,
   skip: number,
@@ -174,6 +206,13 @@ export async function searchDbUserGroup(
   }
 }
 
+/**
+ * This function filters users and groups who are set as not available for public search.
+ *
+ * @param { Array<iUserDoc | iGroupDoc> } searchResults
+ * @param { 0 | 1 } type - (0) user | (1) group
+ * @returns { Promise<Array<iUserSearchObj> | APIError | Error> }
+ */
 export async function filterNonPublic(
   searchResults: Array<iUserDoc | iGroupDoc>,
   type: 0 | 1

@@ -130,6 +130,17 @@ export const getUser: RequestHandler = async (req, res, next) => {
 
 // SUB FXS
 
+/**
+ * This function
+ * - retrieves iUser data object from cache
+ * - else, from DB
+ * - - then, cache that iUser data
+ * - returns iUser data
+ *
+ * @param { string } userId
+ * @param { any } tx - Redis Transaction Command Variable
+ * @returns { Promise<iUserDoc | APIError | Error> }
+ */
 export async function getUserDoc(
   userId: string,
   tx: any
@@ -175,6 +186,18 @@ export async function getUserDoc(
   return user;
 }
 
+/**
+ * This function
+ * - retrieves iGenSecurity data object from cache
+ * - else, from DB
+ * - - then, cache that iGenSecurity data
+ * - returns iGenSecurity data
+ *
+ * @param { string } userId
+ * @param { string } securityId
+ * @param { any } tx - Redis Transaction Command Variable
+ * @returns { Promise<iGenSecurityDoc | APIError | Error> }
+ */
 export async function getPrivacyDoc(
   userId: string,
   securityId: string,
@@ -242,6 +265,12 @@ export async function getPrivacyDoc(
   return userSecurity;
 }
 
+/**
+ * This function returns the count of cache within user's relation cache index.
+ *
+ * @param { string } userId
+ * @returns { Promise<number | APIError | Error> }
+ */
 export async function checkRelCache(
   userId: string
 ): Promise<number | APIError | Error> {
@@ -261,6 +290,12 @@ export async function checkRelCache(
   }
 }
 
+/**
+ * This function returns all the a user's muted and blocked connected user | group from cache.
+ *
+ * @param { string } userId
+ * @returns { Promise<iGetGenRels | APIError | Error> }
+ */
 export async function getRelCache(
   userId: string
 ): Promise<iGetGenRels | APIError | Error> {
@@ -322,6 +357,12 @@ export async function getRelCache(
   }
 }
 
+/**
+ *  This function returns all the a user's muted and blocked connected user | group from DB.
+ *
+ * @param { string } relationsId
+ * @returns { Promise<iGetGenRels | APIError | Error> }
+ */
 export async function getRelDoc(
   relationsId: string
 ): Promise<iGetGenRels | APIError | Error> {
@@ -376,6 +417,14 @@ export async function getRelDoc(
   }
 }
 
+/**
+ * This function caches hBump and an array of iRelation.
+ *
+ * @param { string } userId
+ * @param { string } relationsId
+ * @param { any } userRelations - iRelation[] or iRelation Array
+ * @param { any } tx - Redis Transaction Command Variable
+ */
 export function cacheRelDocs(
   userId: string,
   relationsId: string,
@@ -401,6 +450,14 @@ export function cacheRelDocs(
   }
 }
 
+/**
+ * This function returns the total user cache items from:
+ * - incoming request index
+ * - outgoing request index
+ *
+ * @param { string } userId
+ * @returns { Promise<{ reqInCacheNum: number; reqOutCacheNum: number } | APIError | Error> }
+ */
 export async function chechReqCache(
   userId: string
 ): Promise<
@@ -428,6 +485,16 @@ export async function chechReqCache(
   }
 }
 
+/**
+ * This function returns a set of pending requests from:
+ * - incoming request index
+ * - outgoing request index
+ *
+ * @param { string } userId
+ * @param { number } reqInInfo
+ * @param { number } reqOutInfo
+ * @returns { Promise<iGetGenReqs | APIError | Error> }
+ */
 export async function getReqCache(
   userId: string,
   reqInInfo: number,
@@ -472,16 +539,20 @@ export async function getReqCache(
   }
 }
 
+/**
+ * This function will return aggregated requests:
+ * - incoming requests
+ * - outgoing requests
+ *
+ * @param { string } requestsId
+ * @returns { Promise<iGetGenReqs | APIError | Error> }
+ */
 export async function getReqDoc(
   requestsId: string
 ): Promise<iGetGenReqs | APIError | Error> {
   try {
     const userRequests = await GenRequests.aggregate([
-      {
-        $match: {
-          str_id: requestsId,
-        },
-      },
+      { $match: { str_id: requestsId } },
       {
         $project: {
           requests: "$requests",
@@ -489,48 +560,36 @@ export async function getReqDoc(
             $filter: {
               input: "$requests.invitations.incoming",
               as: "ii",
-              cond: {
-                $eq: ["$$ii.status", "pending"],
-              },
+              cond: { $eq: ["$$ii.status", "pending"] },
             },
           },
           o_outgoing: {
             $filter: {
               input: "$requests.invitations.outgoing",
               as: "io",
-              cond: {
-                $eq: ["$$io.status", "pending"],
-              },
+              cond: { $eq: ["$$io.status", "pending"] },
             },
           },
           m_incoming: {
             $filter: {
               input: "$requests.memberships.incoming",
               as: "mi",
-              cond: {
-                $eq: ["$$mi.status", "pending"],
-              },
+              cond: { $eq: ["$$mi.status", "pending"] },
             },
           },
           m_outgoing: {
             $filter: {
               input: "$requests.memberships.outgoing",
               as: "mo",
-              cond: {
-                $eq: ["$$mo.status", "pending"],
-              },
+              cond: { $eq: ["$$mo.status", "pending"] },
             },
           },
         },
       },
       {
         $addFields: {
-          incoming: {
-            $concatArrays: ["$i_incoming", "$m_incoming"],
-          },
-          outgoing: {
-            $concatArrays: ["$o_outgoing", "$m_outgoing"],
-          },
+          incoming: { $concatArrays: ["$i_incoming", "$m_incoming"] },
+          outgoing: { $concatArrays: ["$o_outgoing", "$m_outgoing"] },
         },
       },
     ]);
@@ -551,6 +610,18 @@ export async function getReqDoc(
   }
 }
 
+/**
+ * This function will add caching of the following to a pending transaction:
+ * - incoming requests
+ * - outgoing requests
+ *
+ * @param { string } userId
+ * @param { string } requestsId
+ * @param { any } userRequests
+ * @param { any } tx
+ *
+ * @returns { void }
+ */
 export function cacheReq(
   userId: string,
   requestsId: string,
@@ -586,6 +657,13 @@ export function cacheReq(
   }
 }
 
+/**
+ * This function will execute transaction depending on a cacheFlag.
+ *
+ * @param { boolean } cacheFlag - indicator whether the transaction will execute or note
+ * @param { any } tx - Redis Transaction Command Variable
+ * @returns { Promise<void | APIError | Error> }
+ */
 export async function cacheUser(
   cacheFlag: boolean,
   tx: any
@@ -603,6 +681,16 @@ export async function cacheUser(
   else await redis.discard();
 }
 
+/**
+ * This function will transform the final object to be sent as a response over HTTP.
+ *
+ * @param { string } userId
+ * @param { iUserDoc } user
+ * @param { iGenSecurityDoc } userSecurity
+ * @param { any } userRequests
+ * @param { any } userRelations
+ * @returns { { accnt_name: string; accnt_id: string; privacy: any; requests: any; relations: any; }}
+ */
 export function configUserData(
   userId: string,
   user: iUserDoc,

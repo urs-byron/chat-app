@@ -60,6 +60,13 @@ export const putUserPrivacy: RequestHandler = async (req, res, next) => {
 
 // SUB FX
 
+/**
+ * Input Validation
+ *
+ * @param { iPrivacyRequest } privacyData - property name and value
+ * @param { iGenPrivacyProp } propValue - property name
+ * @returns { APIError | Error | void }
+ */
 export function validatePutPrivacy(
   privacyData: iPrivacyRequest,
   propValue: iGenPrivacyProp
@@ -74,6 +81,13 @@ export function validatePutPrivacy(
   }
 }
 
+/**
+ * This function updates user privacy document.
+ *
+ * @param { string } securityId
+ * @param { iPrivacyRequest } privacyData
+ * @returns { Promise<void | APIError | Error> }
+ */
 export async function updateDocPrivacy(
   securityId: string,
   privacyData: iPrivacyRequest
@@ -101,6 +115,13 @@ export async function updateDocPrivacy(
   }
 }
 
+/**
+ * This function updates user privacy cache.
+ *
+ * @param { string } userId
+ * @param { iPrivacyRequest } privacyData - property value & name
+ * @returns { Promise<void | APIError | Error> }
+ */
 export async function updateCachePrivacy(
   userId: string,
   privacyData: iPrivacyRequest
@@ -156,6 +177,12 @@ export const putUserPassword: RequestHandler = async (req, res, next) => {
 
 // SUB FX
 
+/**
+ * Input Validation
+ *
+ * @param { iUserPassword } passwordSet
+ * @returns { void | APIError | Error }
+ */
 export function validatePutSecurity(
   passwordSet: iUserPassword
 ): void | APIError | Error {
@@ -165,6 +192,13 @@ export function validatePutSecurity(
   }
 }
 
+/**
+ * This function returns an error if new proposed password and old password matches.
+ *
+ * @param { string } securityId
+ * @param { iUserPassword } passwordSet
+ * @returns { Promise<APIError | Error | void> }
+ */
 export async function validateSamePasswordErr(
   securityId: string,
   passwordSet: iUserPassword
@@ -191,6 +225,13 @@ export async function validateSamePasswordErr(
   }
 }
 
+/**
+ * This function updates user security password in DB.
+ *
+ * @param { string } securityId
+ * @param { iUserPassword } passwordSet
+ * @returns { Promise<APIError | Error | void> }
+ */
 export async function updateUserPassword(
   securityId: string,
   passwordSet: iUserPassword
