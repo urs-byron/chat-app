@@ -48,22 +48,18 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      # - name: Use GH Actions MongoDB
-      #   uses: supercharge/mongodb-github-action@1.10.0
-      #   with:
-      #     mongodb-version: ${{ matrix.mongodb-version }}
+      - name: Use GH Actions MongoDB
+        uses: supercharge/mongodb-github-action@1.10.0
+        with:
+          mongodb-version: ${{ matrix.mongodb-version }}
 
-      # - name: Use GH Actions Redis
-      #   uses: supercharge/redis-github-action@1.6.0
-      #   with:
-      #     redis-version: ${{ matrix.redis-version }}
+      - name: Use GH Actions Redis
+        uses: supercharge/redis-github-action@1.6.0
+        with:
+          redis-version: ${{ matrix.redis-version }}
 
-      - run: npm install typescript
-      - run: npm run install
-      - run: npm run build-ts
-
+      # - run: npm install typescript
+      # - run: npm run install
+      # - run: npm run build-ts
       # - run: npm run build-client
       # - run: npm run test
-
-      - run: ls client
-      - run: ls server
