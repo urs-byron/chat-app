@@ -65,5 +65,5 @@ jobs:
       # - run: npm run build-client
       # - run: npm run test
 
-      - name: List Directories
-        run: ls
+      - run: ls client
+      - run: ls server
