@@ -59,10 +59,10 @@ jobs:
       #     redis-version: ${{ matrix.redis-version }}
 
       - name: Install TypeScript
-        run: npm run typescript
+        run: npm install typescript
 
       - name: Compile Client TypeScript
-        run: npm run tsc --prefix server
+        run: npm run build-ts --prefix server
 
       # - name: Yarn Install
       #   run: yarn install
