@@ -58,18 +58,24 @@ jobs:
       #   with:
       #     redis-version: ${{ matrix.redis-version }}
 
-      - name: Yarn Install
-        run: yarn install
+      - name: Install TypeScript
+        run: npm run typescipt
 
-      - name: Compile TypeScript Client
-        uses: icrawl/action-tsc@v1
-        with:
-          project: client
+      - name: Compile Client TypeScript
+        run: npm run tsc --prefix server
 
-      - name: Compile TypeScript Server
-        uses: icrawl/action-tsc@v1
-        with:
-          project: server
+      # - name: Yarn Install
+      #   run: yarn install
+
+      # - name: Compile TypeScript Client
+      #   uses: icrawl/action-tsc@v1
+      #   with:
+      #     project: client
+
+      # - name: Compile TypeScript Server
+      #   uses: icrawl/action-tsc@v1
+      #   with:
+      #     project: server
 
       - name: List Directories
         run: ls
