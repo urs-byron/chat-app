@@ -61,5 +61,4 @@ jobs:
       - run: npm install typescript
       - run: npm run install
       - run: npm run build-ts
-      - run: npm run build-client
       - run: npm run test
