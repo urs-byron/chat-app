@@ -4,6 +4,7 @@
   "description": "",
   "main": "dist/app.js",
   "scripts": {
+    "build-ts": "tsc",
     "build": "webpack",
     "build-dev": "webpack --config webpack.config.prod.js",
     "start": "webpack serve"

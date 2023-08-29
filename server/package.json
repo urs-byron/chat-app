@@ -4,6 +4,7 @@
   "description": "",
   "main": "dist/main.js",
   "scripts": {
+    "build-ts": "tsc",
     "start": "node dist/main.js",
     "wstart": "nodemon dist/main.js",
     "test": "jest --no-cache --runInBand --detectOpenHandles",

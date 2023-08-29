@@ -7,6 +7,7 @@ on:
 jobs:
   build:
     env:
+      CI: true
       AUTH_COOKIE_NAME: ${{ secrets.AUTH_COOKIE_NAME }}
       DB_DEV_STRING: ${{ secrets.DB_DEV_STRING }}
       DB_PROD_STRING: ${{ secrets.DB_PROD_STRING }}
@@ -31,9 +32,10 @@ jobs:
       SERVER_M1_PORT: ${{ secrets.SERVER_M1_PORT }}
 
     strategy:
-      matrix: node-version:[18.x]
-        mongodb-version::['6.0']
-        redis-version:[7]
+      matrix:
+        node-version: [18.x]
+        mongodb-version: ["6.0"]
+        redis-version: [7]
 
     runs-on: ubuntu-latest
 
@@ -59,8 +61,15 @@ jobs:
       - name: Yarn Install
         run: yarn install
 
-      - name: Compile TypeScript
+      - name: Compile TypeScript Client
         uses: icrawl/action-tsc@v1
+        with:
+          project: client
+
+      - name: Compile TypeScript Server
+        uses: icrawl/action-tsc@v1
+        with:
+          project: server
 
       - name: List Directories
         run: ls
