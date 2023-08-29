@@ -1,0 +1,70 @@
+name: chat-app
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    env:
+      AUTH_COOKIE_NAME: ${{ secrets.AUTH_COOKIE_NAME }}
+      DB_DEV_STRING: ${{ secrets.DB_DEV_STRING }}
+      DB_PROD_STRING: ${{ secrets.DB_PROD_STRING }}
+      DB_TEST_STRING: ${{ secrets.DB_TEST_STRING }}
+      FACEBOOK_CLIENT_ID: ${{ secrets.FACEBOOK_CLIENT_ID }}
+      FACEBOOK_CLIENT_SECRET: ${{ secrets.FACEBOOK_CLIENT_SECRET }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      HTTP_CERT: ${{ secrets.HTTP_CERT }}
+      HTTP_KEY: ${{ secrets.HTTP_KEY }}
+      REDIS_DEV_HOST: ${{ secrets.REDIS_DEV_HOST }}
+      REDIS_DEV_INSIGHT: ${{ secrets.REDIS_DEV_INSIGHT }}
+      REDIS_DEV_PORT: ${{ secrets.REDIS_DEV_PORT }}
+      REDIS_DEV_PW: ${{ secrets.REDIS_DEV_PW }}
+      REDIS_DEV_USER: ${{ secrets.REDIS_DEV_USER }}
+      REDIS_TEST_HOST: ${{ secrets.REDIS_TEST_HOST }}
+      REDIS_TEST_INSIGHT: ${{ secrets.REDIS_TEST_INSIGHT }}
+      REDIS_TEST_PORT: ${{ secrets.REDIS_TEST_PORT }}
+      REDIS_TEST_PW: ${{ secrets.REDIS_TEST_PW }}
+      REDIS_TEST_UN: ${{ secrets.REDIS_TEST_UN }}
+      SERVER_ENV: ${{ secrets.SERVER_ENV }}
+      SERVER_M1_PORT: ${{ secrets.SERVER_M1_PORT }}
+
+    strategy:
+      matrix: node-version:[18.x]
+        mongodb-version::['6.0']
+        redis-version:[7]
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Use Node.js v18
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      # - name: Use GH Actions MongoDB
+      #   uses: supercharge/mongodb-github-action@1.10.0
+      #   with:
+      #     mongodb-version: ${{ matrix.mongodb-version }}
+
+      # - name: Use GH Actions Redis
+      #   uses: supercharge/redis-github-action@1.6.0
+      #   with:
+      #     redis-version: ${{ matrix.redis-version }}
+
+      - name: Yarn Install
+        run: yarn install
+
+      - name: Compile TypeScript
+        uses: icrawl/action-tsc@v1
+
+      - name: List Directories
+        run: ls
+
+      # - run: npm run install
+      # - run: npm run build-client
+      # - run: npm run test

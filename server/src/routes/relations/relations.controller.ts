@@ -296,7 +296,7 @@ export async function getDocRels(
       { $sort: { "relations.list.bump": -1 } },
       { $group: { list: { $push: "$relations.list" }, _id: -1 } },
       { $project: { list: 1 } },
-      { $project: { list: { $slice: ["$list", 1, maxPeers] } } },
+      { $project: { list: { $slice: ["$list", 0, maxPeers] } } },
     ]);
 
     if (!userRelations.length) return [];
