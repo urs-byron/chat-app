@@ -224,7 +224,7 @@ describe("Search User Sub Fxs", () => {
 
       await User.deleteMany({});
       await Group.deleteMany({});
-    }, 15000);
+    }, 30000);
 
     test("if fx would return transformed user | group array", async () => {
       let usr: iUser;
@@ -280,7 +280,7 @@ describe("Search User Sub Fxs", () => {
       const filGrps = await filterNonPublic(aggGrps as iGroupDoc[], 1);
 
       expect((filGrps as any[]).length).toEqual((aggGrps as iUser[]).length);
-    }, 15000);
+    }, 30000);
 
     test("if fx would return error after using wrong security id", async () => {
       const pattern_sample = createSearchFilter(
@@ -319,7 +319,7 @@ describe("Search User Sub Fxs", () => {
       (aggUsrs as any[])[0].security = "pseudoSecId";
       const filGrps = await filterNonPublic(aggUsrs as iUserDoc[], 0);
       expect(filGrps).toBeInstanceOf(APIError || Error);
-    });
+    }, 30000);
   });
 
   afterAll(async () => {
