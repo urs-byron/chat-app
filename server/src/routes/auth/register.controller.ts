@@ -84,7 +84,7 @@ export async function existingDBUser(
   try {
     const existingUser = await User.exists({ act_name: username });
 
-    if (existingUser === null)
+    if (existingUser !== null)
       return newApiError(400, "matching username exists");
   } catch (err) {
     return newApiError(500, "server is unable to find for user from db", err);
