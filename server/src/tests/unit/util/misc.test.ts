@@ -5,7 +5,7 @@ describe("Misc Methods", () => {
     expect(GeneralUtil.getInst()).toStrictEqual(GeneralUtil.getInst());
   });
 
-  test("if sample object key + subkeys and transfomed object keys would be equal", () => {
+  test("if sample object key+subkeys count and transfomed object keys count would equal", () => {
     const sampleObj = {
       key1: {
         key11: 11,

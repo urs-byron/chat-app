@@ -52,7 +52,7 @@ export const getAuth: RequestHandler = async (req, res, next) => {
 // SUB FUNCTIONS
 
 /**
- * INPUT VALIDATION
+ * Input Validation
  *
  * @param { string } userId
  * @returns { void | APIError | Error }

@@ -33,7 +33,16 @@ export class TestUtil {
 
     return grps;
   };
-  static readonly createSampleUser = (i: number = 10) => {
+
+  /**
+   * This function returns a set of user object with:
+   * - their IDs starting with 5
+   * - ending the set items up to 10 by default
+   *
+   * @param { number } i - limiting constant of account saved within DB
+   * @returns { iUser[] }
+   */
+  static readonly createSampleUser = (i: number = 10): iUser[] => {
     let n: number = 5;
     let users: iUser[] = [];
 
@@ -142,14 +151,58 @@ export class TestUtil {
       await Group.create(grp);
     }
   };
+
+  /**
+   * This function saves sample user objects within MongoDB.
+   *
+   * @param { iUser[] } usrs
+   * @returns { Promise<void> }
+   */
   static readonly createSampleUserDoc = async (
     usrs: iUser[]
   ): Promise<void> => {
+    if (usrs === null || usrs === undefined || !usrs.length) return;
+
     let usr: iUser;
+    let prs: any = [];
+
     for (usr of usrs) {
-      await User.create(usr);
+      prs.push(User.create(usr));
     }
+
+    await Promise.allSettled(prs);
   };
+
+  /**
+   * This function saves sample user objects within Redis.
+   *
+   * @param { iUser[] } usrs
+   * @returns { Promise<void> }
+   */
+  static readonly createSampleUserCache = async (
+    usrs: iUser[]
+  ): Promise<void> => {
+    if (
+      usrs === null ||
+      usrs === undefined ||
+      !Array.isArray(usrs) ||
+      !usrs.length
+    )
+      return;
+
+    let usr: iUser;
+    const tx = RedisMethods.client.multi();
+
+    for (usr of usrs)
+      tx.json.set(
+        RedisMethods.userItemName(usr.act_id.accnt_id),
+        "$",
+        RedisMethods.redifyObj(usr)
+      );
+
+    await tx.exec();
+  };
+
   static readonly createSampleGroupRelCache = async (
     userId: string,
     grps: iGroup[]

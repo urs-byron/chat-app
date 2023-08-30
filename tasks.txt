@@ -39,7 +39,9 @@ user | group search skip-next logic
 └ ┴ ┘
 
 ///// URGENT
-
+--- type def & generics
+--- Promise.allSettled
+--- TDD
 
 ///// CURRENT TASKS
 

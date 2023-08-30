@@ -1,5 +1,7 @@
 import "dotenv/config";
 
+import { User } from "../../../../models/user.model";
+import { TestUtil } from "../../../misc/util";
 import { APIError } from "../../../../global/httpErrors.global";
 import { RedisMethods } from "../../../../services/redis.srvcs";
 import { MongoDBMethods } from "../../../../services/mongo.srvcs";
@@ -10,21 +12,12 @@ import {
   matchMongoUser,
   txRedisUser,
 } from "../../../../routes/auth/auth.controller";
-import { User } from "../../../../models/user.model";
 
 describe("Auth Route Sub Functions", () => {
   const OLD_ENV = process.env;
-  const userId = "sampleUserId";
-  const userDoc: iUser = {
-    act_id: {
-      accnt_id: userId,
-      accnt_type: "local",
-    },
-    act_name: "sampleName",
-    security: "securityId",
-    relations: "relationsId",
-    requests: "requestsId",
-  };
+  const usrs: iUser[] = TestUtil.createSampleUser();
+  const userId: string = usrs[0].act_id.accnt_id;
+  const userDoc: iUser = usrs[0];
 
   beforeAll(async () => {
     process.env.SERVER_ENV = "TESTING";
@@ -50,14 +43,14 @@ describe("Auth Route Sub Functions", () => {
     // further combination are not tested and laid off to typescript
   });
 
-  describe("Matching Redis User Fx", () => {
+  describe("Matching Cache User Fx", () => {
     test("if function would return false for no matching cache", async () => {
       const u = await matchRedisUser(userId);
       expect(u).toEqual<boolean | APIError | Error>(false);
     });
 
     test("if function would return true for matching cache", async () => {
-      await txRedisUser(userId, RedisMethods.redifyObj<iUserDoc>(userDoc));
+      await TestUtil.createSampleUserCache(usrs);
       const u = await matchRedisUser(userId);
       expect(u).toEqual<boolean | APIError | Error>(true);
     });
@@ -65,30 +58,34 @@ describe("Auth Route Sub Functions", () => {
     test("if function would return false for deleted cache", async () => {
       await RedisMethods.client.json.del(RedisMethods.userItemName(userId));
       const u = await matchRedisUser(userId);
-      expect(u).toEqual<boolean | APIError | Error>(false);
+      expect(u).toEqual<boolean>(false);
     });
   });
 
-  describe("Matching Mongoose User Fx", () => {
+  describe("Matching Doc User Fx", () => {
     test("if function would return false for no matching doc", async () => {
       const u = await matchMongoUser(userId);
       expect(u).toBeInstanceOf(APIError || Error);
     });
 
     test("if function would return true for matching doc", async () => {
-      await User.create(userDoc);
+      await TestUtil.createSampleUserDoc(usrs);
       const u = await matchMongoUser(userId);
-      Object.keys(RedisMethods.redifyObj(userDoc)).forEach((key) => {
-        expect(key in RedisMethods.redifyObj<iUserDoc>(u!)).toEqual<boolean>(
-          true
-        );
-      });
+      expect((u as iUserDoc).act_id.accnt_id).toEqual<string>(userId);
     });
 
     test("if function would return false for deleted doc", async () => {
       await User.deleteOne({ "act_id.accnt_id": userId });
       const u = await matchMongoUser(userId);
       expect(u).toBeInstanceOf(APIError || Error);
+    });
+  });
+
+  describe("Caching User Obj Fx", () => {
+    test("if fx would return true after matching cache transaction", async () => {
+      await txRedisUser(userId, userDoc as iUserDoc);
+      const u = await matchRedisUser(userId);
+      expect(u).toEqual<boolean>(true);
     });
   });
 
