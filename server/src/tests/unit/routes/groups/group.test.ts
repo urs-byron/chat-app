@@ -9,9 +9,15 @@ import { RedisMethods } from "../../../../services/redis.srvcs";
 import { GenRelations } from "../../../../models/gen.model";
 import { iGenSecuritySH } from "../../../../models/gen.imodel";
 import { MongoDBMethods } from "../../../../services/mongo.srvcs";
-import { iGroup, iNewGrpBody } from "../../../../models/group.imodel";
 import {
-  getCacheGroupRels,
+  iGroup,
+  iGroupDoc,
+  iNewGrpBody,
+} from "../../../../models/group.imodel";
+import {
+  getGroupDoc,
+  getRelCaches,
+  getGroupRelCaches,
   getGroupRelDocs,
   txCacheGroupSet,
   validateNewGrp,
@@ -22,20 +28,77 @@ import {
   updateUserDbRelations,
   updateUserCacheRelations,
 } from "../../../../routes/group/group.controller";
+import { text } from "express";
 
 const OLD_ENV = process.env;
-const userId = "sampleUserId";
-const user: iUser | any = {
-  act_id: {
-    accnt_id: userId,
-    accnt_type: "local",
-  },
-  act_name: "sampleaUserName",
-};
 const password = "samplePassword";
 const userSH: iGenSecuritySH = UserMethods.generateHash(password);
-const grps = TestUtil.createSampleGroup();
 const users = TestUtil.createSampleUser();
+const user = users[0];
+const userId = user.act_id.accnt_id;
+const grps = TestUtil.createSampleGroup();
+const grp = grps[0];
+
+describe("Get Group Sub Fxs", () => {
+  beforeAll(async () => {
+    process.env.SERVER_ENV = "TESTING";
+
+    MongoDBMethods.init();
+    RedisMethods.init();
+    await MongoDBMethods.connect();
+    await RedisMethods.connect();
+  });
+
+  describe("Get Group Doc Fx", () => {
+    /**
+     * Test 1 - no cache, no doc, return error
+     * --- fill group docs
+     * Test 2 - no cache, has doc, return group doc
+     * --- tx.exec()
+     * Test 3 - has cache, has doc, return group doc
+     */
+
+    test("if fx would return error from empty cache and DB", async () => {
+      const tx = RedisMethods.client.multi();
+      const t1 = await getGroupDoc(grp.grp_id, tx);
+      expect(t1).toBeInstanceOf(APIError || Error);
+    });
+
+    test("if fx would return group doc after filling DB", async () => {
+      const tx = RedisMethods.client.multi();
+      await TestUtil.createSampleGroupDoc(grps);
+      const t2 = await getGroupDoc(grp.grp_id, tx);
+
+      await tx.exec();
+
+      expect((t2 as iGroupDoc).grp_id).toEqual<string>(grp.grp_id);
+    }, 15000);
+
+    test(" if fx would return group cache previously caching group", async () => {
+      const tx = RedisMethods.client.multi();
+      const t3 = await getGroupDoc(grp.grp_id, tx);
+
+      tx.discard();
+
+      expect((t3 as iGroupDoc).grp_id).toEqual(grp.grp_id);
+    });
+
+    test("if fx would return error from non-existing group", async () => {
+      const tx = RedisMethods.client.multi();
+      const t1 = await getGroupDoc(grp.grp_id.concat("fakce"), tx);
+      expect(t1).toBeInstanceOf(APIError || Error);
+    });
+  });
+
+  afterAll(async () => {
+    await MongoDBMethods.flush();
+    await RedisMethods.client.flushAll();
+    await MongoDBMethods.disconnect();
+    await RedisMethods.disconnect();
+
+    process.env = OLD_ENV;
+  });
+});
 
 describe("Get Groups Sub Fxs", () => {
   beforeAll(async () => {
@@ -53,7 +116,7 @@ describe("Get Groups Sub Fxs", () => {
     });
 
     test("if fx would return a void since the index is empty", async () => {
-      const gs = await getCacheGroupRels(userId);
+      const gs = await getGroupRelCaches(userId);
       expect(gs).toBeUndefined();
     });
 
@@ -63,7 +126,7 @@ describe("Get Groups Sub Fxs", () => {
       // const i = await RedisMethods.client.ft.info(
       //   RedisMethods.relationSetName(userId)
       // );
-      const gs = await getCacheGroupRels(userId);
+      const gs = await getGroupRelCaches(userId);
       expect(Array.isArray(gs)).toEqual(true);
       expect((gs as []).length).toEqual(5);
     }, 15000);
@@ -75,7 +138,7 @@ describe("Get Groups Sub Fxs", () => {
         RedisMethods.client.json.del(cacheKey);
       });
 
-      const rg = await getCacheGroupRels(userId);
+      const rg = await getGroupRelCaches(userId);
       expect(rg).toBeUndefined();
     }, 15000);
   });

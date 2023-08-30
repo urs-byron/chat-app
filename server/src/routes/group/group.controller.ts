@@ -99,20 +99,20 @@ export const getGroup: RequestHandler = async (req, res, next) => {
     cacheFlag = true;
     cacheRelDocs(groupId, relationsId, userRelations, tx);
   }
+
   // FURTHER PROCESS: search for user requests
   const reqsNumDocs = await chechReqCache(groupId);
   if (reqsNumDocs instanceof APIError || reqsNumDocs instanceof Error)
     return next(reqsNumDocs);
   const { reqInCacheNum, reqOutCacheNum } = reqsNumDocs;
 
-  // if user request IN | OUT set indexes has cachees, return them as response
   if (reqInCacheNum || reqOutCacheNum) {
+    // if group request IN | OUT set indexes has caches, return them as response
     userRequests = await getReqCache(groupId, reqInCacheNum, reqOutCacheNum);
     if (userRequests instanceof APIError || userRequests instanceof Error)
       return next(userRequests);
-
-    // else, search in DB
   } else {
+    // else, search in DB
     userRequests = await getReqDoc(requestsId);
     if (userRequests instanceof APIError || userRequests instanceof Error)
       return next(userRequests);
@@ -126,7 +126,7 @@ export const getGroup: RequestHandler = async (req, res, next) => {
   if (c instanceof APIError || c instanceof Error) return next(c);
   // CANDIDATE FOR WORKER THREAD: END
 
-  const groupData = configUserData(
+  const groupData = configGroupData(
     groupId,
     group,
     userSecurity,
@@ -206,7 +206,7 @@ export async function getGroupDoc(
  * @param { string } id
  * @returns { Promise<[{ relations: iRelation[] }] | APIError | Error> }
  */
-async function getRelCaches(
+export async function getRelCaches(
   id: string
 ): Promise<[{ relations: iRelation[] }] | APIError | Error> {
   let userRelations: any;
@@ -250,7 +250,7 @@ async function getRelCaches(
  * @param { any } userRelations
  * @returns {{ accnt_name: string; accnt_id: string; privacy: any; requests: any; relations: any; }}
  */
-export function configUserData(
+export function configGroupData(
   groupId: string,
   group: iGroupDoc,
   userSecurity: iGenSecurityDoc,
@@ -295,7 +295,7 @@ export const getGroups: RequestHandler = async (req, res, next) => {
   let groups: Array<iRelation> | void | APIError | Error;
 
   // FETCH user groups FROM CACHE
-  groups = await getCacheGroupRels(userId);
+  groups = await getGroupRelCaches(userId);
   if (groups instanceof APIError || groups instanceof Error)
     return next(groups);
   if (Array.isArray(groups))
@@ -328,7 +328,7 @@ export const getGroups: RequestHandler = async (req, res, next) => {
  * @param { string } userId
  * @returns { Promise<iRelation[] | void | APIError | Error> }
  */
-export async function getCacheGroupRels(
+export async function getGroupRelCaches(
   userId: string
 ): Promise<iRelation[] | void | APIError | Error> {
   let groups;

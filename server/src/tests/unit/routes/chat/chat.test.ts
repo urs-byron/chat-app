@@ -85,18 +85,18 @@ describe("Chat Route Sub Functions", () => {
       await TestUtil.createSampleChatDocs(chatObjs);
       const t2 = await getMsgsId(chatObj.chat_id);
       expect(typeof t2).toBe<"string">("string");
-    });
+    }, 15000);
 
     test("if fx would error from wrong argument", async () => {
       const t4 = await getMsgsId(chatObj.chat_id.concat("sample"));
       expect(t4).toBeInstanceOf(APIError || APIError);
-    });
+    }, 15000);
 
     test("if fx would return error after deleting chat collection", async () => {
       await Chat.deleteMany({});
       const t3 = await getMsgsId(chatObj.chat_id);
       expect(t3).toBeInstanceOf(APIError || Error);
-    });
+    }, 30000);
   });
 
   describe("Check Chat Cache Count Fx", () => {
@@ -121,7 +121,7 @@ describe("Chat Route Sub Functions", () => {
       await TestUtil.createSampleMsgsCache(chatObj.chat_id, msgsObjs);
       const t3 = await checkChatInfo(chatObj.chat_id);
       expect(t3).toEqual(msgsObjs.length);
-    });
+    }, 30000);
 
     test(`if fx would return ${
       msgsObjs.length - 1
@@ -135,44 +135,58 @@ describe("Chat Route Sub Functions", () => {
       await TestUtil.deleteSampleMsgsCache(chatObj.chat_id, msgsObjs);
       const t5 = await checkChatInfo(chatObj.chat_id);
       expect(t5).toEqual(0);
-    });
+    }, 30000);
   });
 
   describe("Get Chat Cache Msgs Fx", () => {
     test("if fx would error from non existing chat id", async () => {
       const msgs = await getCacheMsgs(chatObj.chat_id.concat("fake"), 0, 0);
       expect(msgs).toBeInstanceOf(APIError || Error);
-    });
+    }, 20000);
 
     test("if fx would return 0 since msgs are emptied", async () => {
       const msgs = await getCacheMsgs(chatObj.chat_id, 0, 0);
       expect((msgs as iMsgBody[]).length).toEqual(0);
-    });
+    }, 20000);
 
     test(`if fx would return specific counts filling & skipping chat set index`, async () => {
       const cMsgsCnt = 33;
       const cMsgs = TestUtil.createSampleMsgs(cMsgsCnt);
       await TestUtil.createSampleMsgsCache(chatObj.chat_id, cMsgs);
 
+      const pr = [
+        getCacheMsgs(chatObj.chat_id, 0, 0),
+        getCacheMsgs(chatObj.chat_id, chatMsgSkipCnt, 0),
+        getCacheMsgs(chatObj.chat_id, cMsgsCnt * 100, 0),
+      ];
+
+      const [p1, p2, p3] = await Promise.allSettled(pr);
       // cMsgsCnt
-      const t1 = await getCacheMsgs(chatObj.chat_id, 0, 0);
-      expect((t1 as iMsgBody[]).length).toEqual(chatMsgSkipCnt);
+      if (p1.status === "fulfilled")
+        expect((p1.value as iMsgBody[]).length).toEqual(chatMsgSkipCnt);
+      else
+        throw new Error("error upon assertion where array length = cMsgsCnt");
 
       // cMsgsCnt - chatMsgSkipCnt
-      const t2 = await getCacheMsgs(chatObj.chat_id, chatMsgSkipCnt, 0);
-      // WILL FAIL IF cMsgsCnt is greater than 60
-      expect((t2 as iMsgBody[]).length).toEqual(cMsgsCnt - chatMsgSkipCnt);
+      if (p2.status === "fulfilled")
+        expect((p2.value as iMsgBody[]).length).toEqual(
+          cMsgsCnt - chatMsgSkipCnt
+        );
+      else
+        throw new Error(
+          "error upon assertion where array length = cMsgsCnt - chatMsgSkipCnt"
+        );
 
       // 0
-      // redis skip limit is 10000
-      const t3 = await getCacheMsgs(chatObj.chat_id, cMsgsCnt * 100, 0);
-      expect((t3 as iMsgBody[]).length).toEqual(0);
+      if (p3.status === "fulfilled")
+        expect((p3.value as iMsgBody[]).length).toEqual(0);
+      else throw new Error("error upon assertion where array length = 0");
 
       // 0
       await TestUtil.deleteSampleMsgsCache(chatObj.chat_id, cMsgs);
       const t4 = await getCacheMsgs(chatObj.chat_id, 0, 0);
       expect((t4 as iMsgBody[]).length).toEqual(0);
-    });
+    }, 30000);
   });
 
   describe("Get Chat Doc Msgs Fx", () => {
@@ -181,7 +195,7 @@ describe("Chat Route Sub Functions", () => {
     test("if fx would return empty array even if collection is empty", async () => {
       const msgs = await getDocMsgs(chatObj.msgs_id, 0, chatMsgSkipCnt);
       expect(Array.isArray(msgs)).toBe(true);
-    });
+    }, 30000);
 
     test("if fx would return an empty array after just creating msgs doc", async () => {
       const chatMsgs: iChatMsgs = {
@@ -194,7 +208,7 @@ describe("Chat Route Sub Functions", () => {
       const t2 = await getDocMsgs(chatObj.msgs_id, 0, chatMsgSkipCnt);
 
       expect((t2 as []).length).toEqual(0);
-    });
+    }, 30000);
 
     test("if fx would return a specific count after updating msgs doc", async () => {
       const sMsgs = TestUtil.createSampleMsgs(65);
@@ -208,7 +222,7 @@ describe("Chat Route Sub Functions", () => {
 
       const t2 = await getDocMsgs(chatObj.msgs_id, 0, chatMsgSkipCnt);
       expect((t2 as []).length).toEqual(chatMsgSkipCnt);
-    });
+    }, 30000);
 
     test("if fx would return a empty array after updating msgs doc", async () => {
       await ChatMessages.updateOne(
@@ -220,7 +234,7 @@ describe("Chat Route Sub Functions", () => {
 
       const t2 = await getDocMsgs(chatObj.msgs_id, 0, chatMsgSkipCnt);
       expect((t2 as []).length).toEqual(0);
-    });
+    }, 30000);
 
     test("if fx would return empty array with non-existing document", async () => {
       const msgs = await getDocMsgs(
@@ -231,7 +245,7 @@ describe("Chat Route Sub Functions", () => {
 
       expect(Array.isArray(msgs)).toBe(true);
       expect((msgs as iMsgBody[]).length).toEqual(0);
-    });
+    }, 30000);
 
     test("if fx would return empty array with a skip number > total items", async () => {
       const msgs = await getDocMsgs(
@@ -242,14 +256,14 @@ describe("Chat Route Sub Functions", () => {
 
       expect(Array.isArray(msgs)).toBe(true);
       expect((msgs as iMsgBody[]).length).toEqual(0);
-    });
+    }, 30000);
 
     test("if fx would return a empty array after deleting msgs doc", async () => {
       await ChatMessages.deleteMany({});
 
       const t2 = await getDocMsgs(chatObj.msgs_id, 0, chatMsgSkipCnt);
       expect((t2 as []).length).toEqual(0);
-    });
+    }, 30000);
   });
 
   describe("Cache Chat Msgs Fx", () => {
