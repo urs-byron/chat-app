@@ -106,15 +106,13 @@ export function validateChatReqBody(
 export async function getMsgsId(
   chatId: string
 ): Promise<string | Error | APIError> {
-  let msgsId: string;
-
   try {
     let chatCache = await redis.client.ft.search(
       redis.chatIdxStr,
       `@chat_id:(${chatId})`
     );
 
-    if (chatCache.documents.length)
+    if (chatCache.total)
       return (chatCache.documents[0].value as unknown as iChat).msgs_id;
   } catch (err) {
     return newApiError(500, "server is unable to search for chat cache", err);
@@ -160,7 +158,7 @@ export async function checkChatInfo(
  *
  * @param { string } chatId
  * @param { number } skip - starting number from where aggrevate will retrieve
- * @param { number } limit - highest number of items permitted to return
+ * @param { number } limit - highest number of items permitted to return [REDACTED]
  * @returns
  */
 export async function getCacheMsgs(
@@ -169,8 +167,10 @@ export async function getCacheMsgs(
   limit: number
 ): Promise<APIError | Error | iMsgBody[]> {
   try {
-    const msgs = (
-      await redis.client.ft.aggregate(redis.chatSetName(chatId), "*", {
+    const msgs = await redis.client.ft.aggregate(
+      redis.chatSetName(chatId),
+      "*",
+      {
         LOAD: [
           "@msg",
           "@msgId",
@@ -186,10 +186,10 @@ export async function getCacheMsgs(
           },
           { type: AggregateSteps.LIMIT, from: skip, size: chatMsgSkipCnt },
         ],
-      })
-    ).results as unknown as iMsgBody[];
+      }
+    );
 
-    return msgs;
+    return msgs.results as unknown as iMsgBody[];
   } catch (err) {
     return newApiError(500, "server is unable to fetch chat messages", err);
   }
@@ -243,7 +243,13 @@ export async function cacheMsgs(
   const tx = redis.client.multi();
   let msg: iMsgBody;
 
-  if (msgs === null || !Array.isArray(msgs) || !msgs.length) return;
+  if (
+    msgs === null ||
+    msgs === undefined ||
+    !Array.isArray(msgs) ||
+    !msgs.length
+  )
+    return;
 
   for (msg of msgs) {
     tx.json.set(

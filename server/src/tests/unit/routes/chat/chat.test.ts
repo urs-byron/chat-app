@@ -153,17 +153,25 @@ describe("Chat Route Sub Functions", () => {
       const cMsgsCnt = 33;
       const cMsgs = TestUtil.createSampleMsgs(cMsgsCnt);
       await TestUtil.createSampleMsgsCache(chatObj.chat_id, cMsgs);
+
+      // cMsgsCnt
       const t1 = await getCacheMsgs(chatObj.chat_id, 0, 0);
       expect((t1 as iMsgBody[]).length).toEqual(chatMsgSkipCnt);
 
+      // cMsgsCnt - chatMsgSkipCnt
       const t2 = await getCacheMsgs(chatObj.chat_id, chatMsgSkipCnt, 0);
-
       // WILL FAIL IF cMsgsCnt is greater than 60
       expect((t2 as iMsgBody[]).length).toEqual(cMsgsCnt - chatMsgSkipCnt);
 
-      await TestUtil.deleteSampleMsgsCache(chatObj.chat_id, cMsgs);
-      const t3 = await getCacheMsgs(chatObj.chat_id, 0, 0);
+      // 0
+      // redis skip limit is 10000
+      const t3 = await getCacheMsgs(chatObj.chat_id, cMsgsCnt * 100, 0);
       expect((t3 as iMsgBody[]).length).toEqual(0);
+
+      // 0
+      await TestUtil.deleteSampleMsgsCache(chatObj.chat_id, cMsgs);
+      const t4 = await getCacheMsgs(chatObj.chat_id, 0, 0);
+      expect((t4 as iMsgBody[]).length).toEqual(0);
     });
   });
 
@@ -172,15 +180,6 @@ describe("Chat Route Sub Functions", () => {
 
     test("if fx would return empty array even if collection is empty", async () => {
       const msgs = await getDocMsgs(chatObj.msgs_id, 0, chatMsgSkipCnt);
-      expect(Array.isArray(msgs)).toBe(true);
-    });
-
-    test("if fx would return empty array with non-existing document", async () => {
-      const msgs = await getDocMsgs(
-        chatObj.msgs_id.concat("fake"),
-        0,
-        chatMsgSkipCnt
-      );
       expect(Array.isArray(msgs)).toBe(true);
     });
 
@@ -221,6 +220,28 @@ describe("Chat Route Sub Functions", () => {
 
       const t2 = await getDocMsgs(chatObj.msgs_id, 0, chatMsgSkipCnt);
       expect((t2 as []).length).toEqual(0);
+    });
+
+    test("if fx would return empty array with non-existing document", async () => {
+      const msgs = await getDocMsgs(
+        chatObj.msgs_id.concat("fake"),
+        0,
+        chatMsgSkipCnt
+      );
+
+      expect(Array.isArray(msgs)).toBe(true);
+      expect((msgs as iMsgBody[]).length).toEqual(0);
+    });
+
+    test("if fx would return empty array with a skip number > total items", async () => {
+      const msgs = await getDocMsgs(
+        chatObj.msgs_id.concat("fake"),
+        100,
+        chatMsgSkipCnt
+      );
+
+      expect(Array.isArray(msgs)).toBe(true);
+      expect((msgs as iMsgBody[]).length).toEqual(0);
     });
 
     test("if fx would return a empty array after deleting msgs doc", async () => {
