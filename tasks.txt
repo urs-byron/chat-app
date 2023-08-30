@@ -40,6 +40,7 @@ user | group search skip-next logic
 
 ///// URGENT
 --- type def & generics
+--- null || undefined || !Array.isArray() || key in Obj
 --- Promise.allSettled
 --- TDD
 

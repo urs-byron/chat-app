@@ -50,7 +50,7 @@ export const postRegister: RequestHandler = async (req, res, next) => {
 // SUB FUNCTIONS
 
 /**
- * This function returns error if no matching user is found from cache.
+ * This function returns error if matching user is found from cache.
  *
  * @param { string } username
  * @returns { Promise<void | APIError | Error> }
@@ -73,7 +73,7 @@ export async function existingCacheUser(
 }
 
 /**
- * This function returns error if no matching user is found from DB.
+ * This function returns error if matching user is found from DB.
  *
  * @param { string } username
  * @returns { Promise<void | APIError | Error> }
@@ -82,11 +82,10 @@ export async function existingDBUser(
   username: string
 ): Promise<void | APIError | Error> {
   try {
-    let existingUser: { _id: any } | null = await User.exists({
-      act_name: username,
-    });
+    const existingUser = await User.exists({ act_name: username });
 
-    if (existingUser) return newApiError(400, "matching username exists");
+    if (existingUser === null)
+      return newApiError(400, "matching username exists");
   } catch (err) {
     return newApiError(500, "server is unable to find for user from db", err);
   }

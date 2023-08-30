@@ -9,20 +9,13 @@ import {
   existingCacheUser,
   existingDBUser,
 } from "../../../../routes/auth/register.controller";
+import { TestUtil } from "../../../misc/util";
 
 describe("Register Route Sub Functions", () => {
   const OLD_ENV = process.env;
-  const userId = "sampleUserId";
-  const userDoc: iUser = {
-    act_id: {
-      accnt_id: userId,
-      accnt_type: "local",
-    },
-    act_name: "sampleName",
-    security: "securityId",
-    relations: "relationsId",
-    requests: "requestsId",
-  };
+  const usrs: iUser[] = TestUtil.createSampleUser();
+  const userDoc: iUser = usrs[0];
+  const userId: string = userDoc.act_id.accnt_id;
 
   beforeAll(async () => {
     process.env.SERVER_ENV = "TESTING";
@@ -34,22 +27,17 @@ describe("Register Route Sub Functions", () => {
   });
 
   describe("Existing Cache User Fx", () => {
-    const cacheKey = RedisMethods.userItemName(userId);
-
     test("if fx would return an undefined for no matching cache", async () => {
       const e = await existingCacheUser(userDoc.act_name);
       expect(e).toBeUndefined();
     });
     test("if fx would return an error for a matching cache", async () => {
-      await RedisMethods.client.json.set(
-        cacheKey,
-        "$",
-        RedisMethods.redifyObj(userDoc)
-      );
+      await TestUtil.createSampleUserCache(usrs);
       const e = await existingCacheUser(userDoc.act_name);
       expect(e).toBeInstanceOf(APIError || Error);
     });
     test("if fx would return an undefined due to deleting cache", async () => {
+      const cacheKey = RedisMethods.userItemName(userId);
       await RedisMethods.client.json.del(cacheKey);
       const e = await existingCacheUser(userDoc.act_name);
       expect(e).toBeUndefined();
@@ -63,7 +51,7 @@ describe("Register Route Sub Functions", () => {
     });
 
     test("if fx would return an error for matching doc", async () => {
-      await User.create(userDoc);
+      await TestUtil.createSampleUserDoc(usrs);
       const e = await existingDBUser(userDoc.act_name);
       expect(e).toBeInstanceOf(APIError || Error);
     });
