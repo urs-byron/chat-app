@@ -132,10 +132,10 @@ export function configSearch(type: 0 | 1): {
 /**
  * This function returns a matching object for DB aggregate pipeline.
  *
- * @param { string } userId
- * @param { string } pattern
- * @param { "act_id.accnt_id" | "grp_id" } id
- * @param { "act_name" | "grp_name" } name
+ * @param { string } userId - account ID of search requestor, w/c will be omited from search
+ * @param { string } pattern - search pattern transformed to regex
+ * @param { "act_id.accnt_id" | "grp_id" } id - id key path name within object
+ * @param { "act_name" | "grp_name" } name - name key path name within object
  * @returns
  */
 export function createSearchFilter(
@@ -195,7 +195,7 @@ export async function searchDbUserGroup(
       { $match: filter },
       { $sort: { act_name: 1 } },
       { $project: fields },
-      { $skip: skip - 1 },
+      { $skip: skip },
       { $limit: limit },
     ]);
 
@@ -235,7 +235,7 @@ export async function filterNonPublic(
       }).lean();
 
       if (!publicProp)
-        return newApiError(404, "server found no user | group sewcurity");
+        return newApiError(404, "server found no user | group security");
 
       if (publicProp.privacy.public) {
         publicUsers!.push({

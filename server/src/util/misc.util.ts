@@ -23,7 +23,7 @@ export class GeneralUtil {
 
   static readonly getMongoSkipLimit = (skip: number, skipCnt: number) => {
     return {
-      skip: skip ? skip * skipCnt + 1 : 1,
+      skip: skip ? skip * skipCnt : 0,
       limit: (skip + 1) * skipCnt,
     };
   };
