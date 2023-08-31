@@ -8,15 +8,22 @@ import { iGenSecurityDoc } from "../models/gen.imodel";
 import { ValidateMethods } from "../util/validate.util";
 import { APIError, newApiError } from "../global/httpErrors.global";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Strategy as GithubStrategy } from "passport-github2";
 import { iUser, iUserDoc, iUserType } from "../models/user.imodel";
-import { Strategy as FacebookStrategy } from "passport-facebook";
 import {
-  Profile,
+  Profile as GProfile,
   VerifyCallback,
   StrategyOptions,
   Strategy as GoogleStrategy,
 } from "passport-google-oauth20";
+import {
+  Strategy as FacebookStrategy,
+  Profile as FBProfile,
+} from "passport-facebook";
+import {
+  Strategy as GithubStrategy,
+  Profile as GHProfile,
+} from "passport-github2";
+import { RedisMethods } from "../services/redis.srvcs";
 
 interface iStratOpt {
   callbackURL: string;
@@ -36,23 +43,23 @@ export class Passport {
 
   /** Custom Google Passport Options: cb, id, sercret. */
   static readonly google_opts: StrategyOptions & iStratOpt = {
-    callbackURL: "/auth/login/google/callback",
+    callbackURL: "/1/auth/login/google/callback",
     clientID: process.env.GOOGLE_CLIENT_ID!,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
   };
 
   /** Custom FB Passport Options: cb, id, sercret. */
   static readonly facebook_opts: iStratOpt = {
-    callbackURL: "/auth/login/facebook/callback",
+    callbackURL: "/1/auth/login/facebook/callback",
     clientID: process.env.FACEBOOK_CLIENT_ID!,
     clientSecret: process.env.FACEBOOK_CLIENT_SECRET!,
   };
 
   /** Custom GitHub Passport Options: cb, id, sercret. */
   static readonly github_opts: iStratOpt = {
-    callbackURL: "/auth/login/github/callback" as string,
-    clientID: process.env.GITHUB_CLIENT_ID as string,
-    clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
+    callbackURL: "/1/auth/login/github/callback",
+    clientID: process.env.GITHUB_CLIENT_ID!,
+    clientSecret: process.env.GITHUB_CLIENT_SECRET!,
   };
 
   private constructor() {}
@@ -68,6 +75,8 @@ export class Passport {
    * @param { string } password - account password
    * @param { VerifyCallback } done
    * @returns { Promise<void> }
+   *
+   * @static
    */
   static readonly localVerifyCallback = async (
     username: string,
@@ -137,19 +146,21 @@ export class Passport {
    *
    * @param { string } accessToken
    * @param { string } refreshToken
-   * @param { Profile } profile
+   * @param { GProfile } profile
    * @param { VerifyCallback } done
    * @returns { Promise<void> }
+   *
+   * @static
    */
   static readonly googleVerifyCallback = async (
     accessToken: string,
     refreshToken: string,
-    profile: Profile,
+    profile: GProfile,
     done: VerifyCallback
   ): Promise<void> => {
     const r = await this.logOrCreateSignOnAccount(
       profile.id,
-      profile.emails?.[0]?.value as string,
+      profile.displayName as string,
       "google"
     );
 
@@ -162,14 +173,16 @@ export class Passport {
    *
    * @param { string } accessToken
    * @param { string } refreshToken
-   * @param { any } profile
+   * @param { FBProfile } profile
    * @param { VerifyCallback } done
    * @returns { Promise<void> }
+   *
+   * @static
    */
   static readonly facebookVerifyCallback = async (
     accessToken: string,
     refreshToken: string,
-    profile: any,
+    profile: FBProfile,
     done: VerifyCallback
   ): Promise<void> => {
     const r = await this.logOrCreateSignOnAccount(
@@ -187,19 +200,21 @@ export class Passport {
    *
    * @param { string } accessToken
    * @param { string } refreshToken
-   * @param { any } profile
+   * @param { GHProfile } profile
    * @param { VerifyCallback } done
    * @returns { Promise<void> }
+   *
+   * @static
    */
   static readonly githubVerifyCallback = async (
     accessToken: string,
     refreshToken: string,
-    profile: any,
+    profile: GHProfile,
     done: VerifyCallback
   ): Promise<void> => {
     const r = await this.logOrCreateSignOnAccount(
       profile.id,
-      profile.login,
+      profile.displayName,
       "github"
     );
 
@@ -220,6 +235,8 @@ export class Passport {
    * @param { string } username - username from 3rd party API
    * @param { iUserType } type - type of account login
    * @returns { Promise<iUser | APIError | Error> }
+   *
+   * @static
    */
   static readonly logOrCreateSignOnAccount = async (
     id: string,
@@ -232,7 +249,7 @@ export class Passport {
       // ACCOUNT SEARCH FROM DB
       user = await User.findOne({
         act_id: { accnt_type: type, accnt_id: id },
-      }).lean();
+      } as iUser).lean();
     } catch (err) {
       return newApiError(500, "unable to search user", err);
     }
