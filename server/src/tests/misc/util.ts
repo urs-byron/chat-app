@@ -14,6 +14,11 @@ import { iChat, iMsgBody } from "../../models/chat.imodel";
 import { Chat } from "../../models/chat.model";
 
 export class TestUtil {
+  /**
+   *
+   * @param i
+   * @returns
+   */
   static readonly createSampleGroup = (i: number = 5): iGroup[] => {
     let n = 0;
     let grps: iGroup[] = [];
@@ -144,12 +149,30 @@ export class TestUtil {
 
     return rels;
   };
+
+  /**
+   * This funtion independently stores group document within mongoDB groups collection.
+   *
+   * @param { iGroup[] } grps
+   * @returns { Promise<void> }
+   */
   static readonly createSampleGroupDoc = async (
     grps: iGroup[]
   ): Promise<void> => {
+    if (
+      grps === null ||
+      grps === undefined ||
+      !Array.isArray(grps) ||
+      !grps.length
+    )
+      return;
+
+    let p = [];
     for (const grp of grps) {
-      await Group.create(grp);
+      p.push(Group.create(grp));
     }
+
+    await Promise.allSettled(p);
   };
 
   /**
@@ -220,6 +243,15 @@ export class TestUtil {
 
     await updateUserCacheRelations(tx);
   };
+
+  /**
+   * This function populates a mock account's relation cache index, independently.
+   *
+   * @param { string } userId
+   * @param { iUser[] } users
+   *
+   * @static
+   */
   static readonly createSampleUsersRelCache = async (
     userId: string,
     users: iUser[]

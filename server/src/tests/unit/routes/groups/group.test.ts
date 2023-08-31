@@ -7,8 +7,8 @@ import { TestUtil } from "../../../misc/util";
 import { UserMethods } from "../../../../data/user.data";
 import { RedisMethods } from "../../../../services/redis.srvcs";
 import { GenRelations } from "../../../../models/gen.model";
-import { iGenSecuritySH } from "../../../../models/gen.imodel";
 import { MongoDBMethods } from "../../../../services/mongo.srvcs";
+import { iGenSecuritySH, iRelation } from "../../../../models/gen.imodel";
 import {
   iGroup,
   iGroupDoc,
@@ -23,12 +23,9 @@ import {
   validateNewGrp,
   sameCacheGrpNameErr,
   sameDbGrpNameErr,
-  getDBUserHBump,
+  getIncrDBUserHBump,
   createGrpRelObj,
-  updateUserDbRelations,
-  updateUserCacheRelations,
 } from "../../../../routes/group/group.controller";
-import { text } from "express";
 
 const OLD_ENV = process.env;
 const password = "samplePassword";
@@ -90,6 +87,68 @@ describe("Get Group Sub Fxs", () => {
     });
   });
 
+  describe("Get Relation Caches", () => {
+    type T = Record<"relations", iRelation[]>[];
+    const relCacheObj: T = [{ relations: [] }];
+
+    /**
+     * Test 1: Return Error from non existing index
+     * --- create relation index
+     * Test 2: Return empty array
+     * --- populate relation index
+     * Test 3: Return predetermined array
+     * --- delete relation index caches
+     * Test 4: Return empty array
+     */
+
+    test("if fx would return error from non existing index", async () => {
+      const t1 = await getRelCaches(userId);
+      expect(t1).toBeInstanceOf<typeof APIError | Error>(APIError || Error);
+    });
+
+    test("if fx would return empty array afer creating index", async () => {
+      await RedisMethods.createRelationIndex(userId);
+      const t2 = await getRelCaches(userId);
+
+      expect((t2 as T)[0].relations.length).toEqual<number>(0);
+      expect(t2).toStrictEqual<T>(relCacheObj);
+    });
+
+    test(`if fx would return a rel array with a length of ${users.length}`, async () => {
+      await TestUtil.createSampleUsersRelCache(userId, users);
+      const t3 = await getRelCaches(userId);
+
+      let t3ex = relCacheObj;
+      t3ex[0].relations = [...(t3 as T)[0].relations];
+
+      expect((t3 as T)[0].relations.length).toEqual<number>(users.length);
+      expect(t3).toStrictEqual<T>(t3ex);
+    }, 15000);
+
+    test("if fx would return an empty array after deleting index cache relations", async () => {
+      const tx = RedisMethods.client.multi();
+
+      let user: iUser;
+      let userKey: string;
+      for (user of users) {
+        userKey = RedisMethods.relationSetItemName(
+          userId,
+          user.act_id.accnt_id
+        );
+        tx.json.del(userKey);
+      }
+      await tx.exec();
+
+      const t4 = await getRelCaches(userId);
+
+      let t4ex = relCacheObj;
+      t4ex[0].relations = [...(t4 as T)[0].relations];
+
+      expect((t4 as T)[0].relations.length).toEqual<number>(0);
+      expect(t4).toStrictEqual<T>(relCacheObj);
+    }, 15000);
+  });
+
   afterAll(async () => {
     await MongoDBMethods.flush();
     await RedisMethods.client.flushAll();
@@ -120,23 +179,25 @@ describe("Get Groups Sub Fxs", () => {
       expect(gs).toBeUndefined();
     });
 
-    test("if fx would return group relation array", async () => {
-      await TestUtil.createSampleGroupRelCache(userId, grps);
-      await TestUtil.createSampleUsersRelCache(userId, users);
-      // const i = await RedisMethods.client.ft.info(
-      //   RedisMethods.relationSetName(userId)
-      // );
+    test(`if fx would return group relation array of ${users.length} items`, async () => {
+      await Promise.allSettled([
+        TestUtil.createSampleGroupRelCache(userId, grps),
+        TestUtil.createSampleUsersRelCache(userId, users),
+      ]);
+
       const gs = await getGroupRelCaches(userId);
-      expect(Array.isArray(gs)).toEqual(true);
-      expect((gs as []).length).toEqual(5);
+      expect(Array.isArray(gs)).toEqual<boolean>(true);
+      expect((gs as []).length).toEqual<number>(users.length);
     }, 15000);
 
     test("if fx would return a void since the cache are deleted", async () => {
+      const tx = RedisMethods.client.multi();
       let cacheKey: string;
       grps.forEach((grp: iGroup) => {
         cacheKey = RedisMethods.relationSetItemName(userId, grp.grp_id);
-        RedisMethods.client.json.del(cacheKey);
+        tx.json.del(cacheKey);
       });
+      await tx.exec();
 
       const rg = await getGroupRelCaches(userId);
       expect(rg).toBeUndefined();
@@ -158,7 +219,7 @@ describe("Get Groups Sub Fxs", () => {
 
     test("if fx would return an empty group array", async () => {
       const gd = await getGroupRelDocs((u as iUser).relations);
-      expect((gd as []).length).toBe(0);
+      expect((gd as []).length).toBe<number>(0);
     });
 
     test("if fx would return group relation array", async () => {
@@ -173,27 +234,14 @@ describe("Get Groups Sub Fxs", () => {
         users
       );
 
-      const r = await GenRelations.findOne({
-        str_id: (u as iUser).relations,
-      }).lean();
-      r?.relations.list;
-
       const gd = await getGroupRelDocs((u as iUser).relations);
       expect((gd as []).length).toEqual(5);
     }, 15000);
 
     test("if fx would return an empty array since the documents are deleted", async () => {
       await GenRelations.updateOne(
-        {
-          str_id: (u as iUser).relations,
-        },
-        {
-          $pull: {
-            ["relations.list"]: {
-              type: "group",
-            },
-          },
-        }
+        { str_id: (u as iUser).relations },
+        { $pull: { ["relations.list"]: { type: "group" } } }
       );
 
       const gd = await getGroupRelDocs((u as iUser).relations);
@@ -318,21 +366,20 @@ describe("Post Groups Sub Fxs", () => {
       const v = await sameCacheGrpNameErr(mainGrpSample.grp_name);
       expect(v).toBeUndefined();
     });
+
     test("if fx would return undefined upon finding cache match", async () => {
+      const tx = RedisMethods.client.multi();
       let grpKey: string;
 
       grps.forEach(async (grp: iGroup) => {
         grpKey = RedisMethods.grpItemName(grp.grp_id);
-        await RedisMethods.client.json.set(
-          grpKey,
-          "$",
-          RedisMethods.redifyObj(grp)
-        );
+        tx.json.set(grpKey, "$", RedisMethods.redifyObj(grp));
       });
+      tx.exec();
 
       const v = await sameCacheGrpNameErr(mainGrpSample.grp_name);
       expect(v).toBeInstanceOf(APIError || Error);
-    });
+    }, 15000);
 
     test("if fx would return undefined after deleting matching cache", async () => {
       await RedisMethods.client.json.del(
@@ -350,10 +397,8 @@ describe("Post Groups Sub Fxs", () => {
     });
 
     test("if fx would return an error after finding matching doc", async () => {
-      let grp: iGroup;
-      for (grp of grps) {
-        await Group.create(grp);
-      }
+      await TestUtil.createSampleGroupDoc(grps);
+
       await Group.findOne({
         grp_name: mainGrpSample.grp_name,
       } as iGroup).lean();
@@ -380,7 +425,7 @@ describe("Post Groups Sub Fxs", () => {
     });
 
     test("if fx would return an error after finding no relation match", async () => {
-      const b = await getDBUserHBump(userId, (u as iUser).relations, tx);
+      const b = await getIncrDBUserHBump(userId, (u as iUser).relations, tx);
       expect(b).toEqual(1);
     });
 
@@ -395,13 +440,13 @@ describe("Post Groups Sub Fxs", () => {
         (u as iUser).relations,
         users
       );
-      const b = await getDBUserHBump(userId, (u as iUser).relations, tx);
+      const b = await getIncrDBUserHBump(userId, (u as iUser).relations, tx);
       expect(typeof b).toEqual("number");
     });
 
     test("if fx would return an error after deleting relation match", async () => {
       await GenRelations.deleteMany({});
-      const b = await getDBUserHBump(userId, (u as iUser).relations, tx);
+      const b = await getIncrDBUserHBump(userId, (u as iUser).relations, tx);
       expect(b).toBeInstanceOf(APIError || Error);
     });
   });

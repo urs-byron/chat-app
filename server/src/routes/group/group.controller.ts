@@ -201,9 +201,9 @@ export async function getGroupDoc(
 }
 
 /**
- * This function returns a set of iRelation from cache.
+ * This function returns a set of user iRelation from cache.
  *
- * @param { string } id
+ * @param { string } id - userId
  * @returns { Promise<[{ relations: iRelation[] }] | APIError | Error> }
  */
 export async function getRelCaches(
@@ -362,7 +362,7 @@ export async function getGroupRelCaches(
  * This function returns relation doc set of a group.
  *
  * @param { string} relationsId
- * @returns
+ * @returns { Promise<Array<iRelation> | APIError | Error> }
  */
 export async function getGroupRelDocs(
   relationsId: string
@@ -430,7 +430,7 @@ response ----------- DONE
 
 // URGENT
 import ------------- DONE
-comment ------------ !NO!
+comment ------------ DONE
 */
 
 export const postGroup: RequestHandler = async (req, res, next) => {
@@ -481,7 +481,7 @@ export const postGroup: RequestHandler = async (req, res, next) => {
   // ---- UPDATE relation list in DB & CACHE
 
   // UPDATE user hBump in DB
-  const userBump = await getDBUserHBump(userId, relationsId, tx);
+  const userBump = await getIncrDBUserHBump(userId, relationsId, tx);
   if (userBump instanceof APIError || userBump instanceof Error)
     return next(userBump);
 
@@ -569,7 +569,7 @@ export async function sameDbGrpNameErr(
 }
 
 /**
- * This function caches the new group.
+ * This function initiates cache transaction for the new group.
  *
  * @param { iGroup } new_grp - new group data object
  * @param { any } tx - Redis Transaction Command Variable
@@ -589,7 +589,7 @@ export function cacheNewGroup(new_grp: iGroup, tx: any) {
  * @param { any } tx - Redis Transaction Command Variable
  * @returns { Promise<number | APIError | Error> }
  */
-export async function getDBUserHBump(
+export async function getIncrDBUserHBump(
   userId: string,
   relationsId: string,
   tx: any
@@ -598,7 +598,7 @@ export async function getDBUserHBump(
   try {
     userBump = await GenRelations.findOne({
       str_id: relationsId,
-    }).lean();
+    } as iGenRelations).lean();
 
     if (!userBump) {
       return newApiError(404, "server found no user hBump");
