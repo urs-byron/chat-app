@@ -42,35 +42,58 @@ export const getUser: RequestHandler = async (req, res, next) => {
   } = req.user as iUser;
 
   let cacheFlag: boolean = false;
-  let user: iUserDoc | APIError | Error,
-    userSecurity: iGenSecurityDoc | APIError | Error,
-    userRelations!: iGetGenRels | APIError | Error,
-    userRequests: iGetGenReqs | APIError | Error;
 
   // PROCESS: ready cache transaction
   const tx = redis.client.multi();
 
-  // FURTHER PROCESS: search for user info
-  user = await getUserDoc(userId, tx);
-  if (user instanceof APIError || user instanceof Error) return next(user);
-  else cacheFlag = true;
+  let user: iUserDoc | APIError | Error,
+    userSecurity: iGenSecurityDoc | APIError | Error,
+    userRelations!: iGetGenRels | APIError | Error,
+    userRequests: iGetGenReqs | APIError | Error,
+    relNumDocs: number | APIError | Error,
+    reqsNumDocs:
+      | { reqInCacheNum: number; reqOutCacheNum: number }
+      | APIError
+      | Error;
 
-  // FURTHER PROCESS: search for user privacy
-  userSecurity = await getPrivacyDoc(userId, securityId, tx);
-  if (userSecurity instanceof APIError || userSecurity instanceof Error)
-    return next(userSecurity);
+  const [userP, secP, relCkP, reqCkP] = await Promise.allSettled([
+    getUserDoc(userId, tx),
+    getPrivacyDoc(userId, securityId, tx),
+    checkRelCache(userId),
+    chechReqCache(userId),
+  ]);
+
+  if (userP.status === "fulfilled")
+    if (userP.value instanceof APIError || userP.value instanceof Error)
+      return next(userP.value);
+    else user = userP.value;
+  else return next(userP.reason);
+
+  if (secP.status === "fulfilled")
+    if (secP.value instanceof APIError || secP.value instanceof Error)
+      return next(secP.value);
+    else userSecurity = secP.value;
+  else return next(secP.reason);
+
+  if (relCkP.status === "fulfilled")
+    if (relCkP.value instanceof APIError || relCkP.value instanceof Error)
+      return next(relCkP.value);
+    else relNumDocs = relCkP.value;
+  else return next(relCkP.reason);
+
+  if (reqCkP.status === "fulfilled")
+    if (reqCkP.value instanceof APIError || reqCkP.value instanceof Error)
+      return next(reqCkP.value);
+    else reqsNumDocs = reqCkP.value;
+  else return next(reqCkP.reason);
+
+  const { reqInCacheNum, reqOutCacheNum } = reqsNumDocs;
 
   cacheFlag = true;
 
   // FURTHER PROCESS: search for user relations
-  const relationIndexInfo = await checkRelCache(userId);
-  if (
-    relationIndexInfo instanceof APIError ||
-    relationIndexInfo instanceof Error
-  )
-    return next(relationIndexInfo);
 
-  if (relationIndexInfo) {
+  if (relNumDocs) {
     // if relation index has user relation set caches, further retrieve user relation set items
     userRelations = await getRelCache(userId);
     if (userRelations instanceof APIError || userRelations instanceof Error)
@@ -87,13 +110,9 @@ export const getUser: RequestHandler = async (req, res, next) => {
   }
 
   // FURTHER PROCESS: search for user requests
-  const reqsNumDocs = await chechReqCache(userId);
-  if (reqsNumDocs instanceof APIError || reqsNumDocs instanceof Error)
-    return next(reqsNumDocs);
-  const { reqInCacheNum, reqOutCacheNum } = reqsNumDocs;
 
-  // if user request IN | OUT set indexes has cachees, return them as response
   if (reqInCacheNum || reqOutCacheNum) {
+    // if user request IN | OUT set indexes has cachees, return them as response
     userRequests = await getReqCache(userId, reqInCacheNum, reqOutCacheNum);
     if (userRequests instanceof APIError || userRequests instanceof Error)
       return next(userRequests);
@@ -227,40 +246,41 @@ export async function getPrivacyDoc(
       ? delete userSecurity.privacy.str_id
       : null;
 
-    // else, search DB
-  } else {
-    try {
-      userSecurity = (await GenSecurity.findOne<iGenSecurityDoc>({
-        str_id: securityId,
-      }).lean()) as iGenSecurityDoc | null;
+    return userSecurity;
+  }
 
-      if (!userSecurity) {
-        await redis.discard();
-        return newApiError(404, "server found no user security");
-      }
+  // else, search DB
+  try {
+    userSecurity = (await GenSecurity.findOne<iGenSecurityDoc>({
+      str_id: securityId,
+    }).lean()) as iGenSecurityDoc | null;
 
-      // add user security to cache transaction
-    } catch (err) {
+    if (!userSecurity) {
       await redis.discard();
-      return newApiError(
-        500,
-        "server is unable to search user security in DB",
-        err
-      );
+      return newApiError(404, "server found no user security");
     }
 
-    const keyName = redis.securityItemName(userId);
-    tx.json.set(
-      keyName,
-      "$",
-      redis.redifyObj({
-        str_id: userSecurity.str_id,
-        public: userSecurity.privacy.public,
-        availability: userSecurity.privacy.availability,
-      })
+    // add user security to cache transaction
+  } catch (err) {
+    await redis.discard();
+    return newApiError(
+      500,
+      "server is unable to search user security in DB",
+      err
     );
-    // tx.expire(keyName, redis.days(3));
   }
+
+  const keyName = redis.securityItemName(userId);
+  tx.json.set(
+    keyName,
+    "$",
+    redis.redifyObj({
+      str_id: userSecurity.str_id,
+      public: userSecurity.privacy.public,
+      availability: userSecurity.privacy.availability,
+    })
+  );
+  // tx.expire(keyName, redis.days(3));
 
   return userSecurity;
 }
@@ -507,9 +527,7 @@ export async function getReqCache(
       reqIn = await redis.client.ft.aggregate(
         redis.requestInSetName(userId),
         "@status:pending",
-        {
-          LOAD: ["@accnt_id", "@accnt_name", "@isGroup", "@status"],
-        }
+        { LOAD: ["@accnt_id", "@accnt_name", "@isGroup", "@status"] }
       );
     }
 
@@ -517,16 +535,16 @@ export async function getReqCache(
       reqOut = await redis.client.ft.aggregate(
         redis.requestOutSetName(userId),
         "@status:pending",
-        {
-          LOAD: ["@accnt_id", "@accnt_name", "@isGroup", "@status"],
-        }
+        { LOAD: ["@accnt_id", "@accnt_name", "@isGroup", "@status"] }
       );
     }
 
     return [
       {
-        incoming: reqIn?.total ? [...reqIn.results] : [],
-        outgoing: reqOut?.total ? [...reqOut.results] : [],
+        incoming:
+          reqIn !== undefined ? (reqIn.total ? [...reqIn.results] : []) : [],
+        outgoing:
+          reqOut !== undefined ? (reqOut.total ? [...reqOut.results] : []) : [],
       },
     ] as iGetGenReqs;
   } catch (err) {
