@@ -2,7 +2,7 @@ import "dotenv/config";
 
 import { iUser } from "../../../../models/user.imodel";
 import { Group } from "../../../../models/group.model";
-import { iGroup } from "../../../../models/group.imodel";
+import { iGroup, iGroupDoc } from "../../../../models/group.imodel";
 import { TestUtil } from "../../../misc/util";
 import { APIError } from "../../../../global/httpErrors.global";
 import { relSkipCnt } from "../../../../global/search.global";
@@ -103,6 +103,7 @@ describe("Get Relations Sub Fxs", () => {
       const g = await getDbGroup(sGrp.grp_id);
 
       expect("grp_id" in g).toBe(true);
+      expect(sGrp.grp_id).toEqual((g as iGroupDoc).grp_id);
     }, 15000);
 
     test("if fx would return error since collection is emptied", async () => {
@@ -287,7 +288,6 @@ describe("Get Relations Sub Fxs", () => {
     });
   });
 
-  /** PROBLEM */
   describe("Relation Doc Retrieval Fx", () => {
     let u: iUser | APIError | Error;
     const userPass = "samplePassword";

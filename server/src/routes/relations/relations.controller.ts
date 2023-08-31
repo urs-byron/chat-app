@@ -1,6 +1,5 @@
 import { iUser } from "../../models/user.imodel";
 import { Group } from "../../models/group.model";
-import { maxPeers, relSkipCnt } from "../../global/search.global";
 import { iChatType } from "../../models/chat.imodel";
 import { iGroupDoc } from "../../models/group.imodel";
 import { GeneralUtil } from "../../util/misc.util";
@@ -10,6 +9,7 @@ import { RequestHandler } from "express";
 import { PassportSession } from "../../models/auth.imodel";
 import { ValidateMethods } from "../../util/validate.util";
 import { UpdateWriteOpResult } from "mongoose";
+import { maxPeers, relSkipCnt } from "../../global/search.global";
 import { RedisMethods as redis } from "../../services/redis.srvcs";
 import { APIError, newApiError } from "../../global/httpErrors.global";
 import { GenRelations, contactType } from "../../models/gen.model";
@@ -142,7 +142,7 @@ export async function getDbGroup(
 }
 
 /**
- * Variable Assignment
+ * Variable Assignment - fetches group document if requestor is a group
  *
  * @param { iChatType } chatType
  * @param { string } groupId
@@ -240,7 +240,7 @@ export async function getCacheRels(
             type: AggregateSteps.SORTBY,
             BY: { BY: "@bump", DIRECTION: "DESC" },
           },
-          { type: AggregateSteps.LIMIT, from: 0, size: maxPeers - 1 },
+          { type: AggregateSteps.LIMIT, from: 0, size: maxPeers },
         ],
       }
     );
@@ -321,7 +321,13 @@ export async function cacheRels(
   userId: string,
   relations: Array<iRelation>
 ): Promise<APIError | Error | void> {
-  if (!relations.length) return;
+  if (
+    relations === null ||
+    relations === undefined ||
+    !Array.isArray(relations) ||
+    !relations.length
+  )
+    return;
 
   try {
     const tx = redis.client.multi();
