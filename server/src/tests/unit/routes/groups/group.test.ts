@@ -239,10 +239,7 @@ describe("Get Groups Sub Fxs", () => {
     }, 15000);
 
     test("if fx would return an empty array since the documents are deleted", async () => {
-      await GenRelations.updateOne(
-        { str_id: (u as iUser).relations },
-        { $pull: { ["relations.list"]: { type: "group" } } }
-      );
+      await TestUtil.pullAllFromRelDoc((u as iUser).relations);
 
       const gd = await getGroupRelDocs((u as iUser).relations);
       expect((gd as []).length).toEqual(0);

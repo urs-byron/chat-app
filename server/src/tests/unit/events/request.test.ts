@@ -1,3 +1,7 @@
+import "dotenv/config";
+
+import { RedisMethods } from "../../../services/redis.srvcs";
+import { MongoDBMethods } from "../../../services/mongo.srvcs";
 import {
   configRequestVars,
   getUserRecipient,
@@ -9,8 +13,6 @@ import {
   updateCacheRequests,
   getNewCacheRequests,
 } from "../../../events/request.event";
-import { MongoDBMethods } from "../../../services/mongo.srvcs";
-import { RedisMethods } from "../../../services/redis.srvcs";
 
 describe("Post Request Sub Fxs", () => {
   const OLD_ENV = process.env;

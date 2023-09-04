@@ -336,13 +336,13 @@ export async function getRelCache(
           "@archive",
           "@bump",
         ],
+        STEPS: [
+          {
+            type: AggregateSteps.SORTBY,
+            BY: { BY: "@bump", DIRECTION: "DESC" },
+          },
+        ],
       }
-      // {
-      //   STEPS:[
-      //     {type:AggregateSteps.SORTBY,
-      //     }
-      //   ]
-      // }
     );
 
     // return user relation set muted items
@@ -360,6 +360,12 @@ export async function getRelCache(
           "@mute",
           "@archive",
           "@bump",
+        ],
+        STEPS: [
+          {
+            type: AggregateSteps.SORTBY,
+            BY: { BY: "@bump", DIRECTION: "DESC" },
+          },
         ],
       }
     );

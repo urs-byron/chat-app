@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { unavailableRoute } from "./error.controller.js";
+import { unavailableRoute } from "./error.controller";
 
 export const error_router: Router = Router();
 

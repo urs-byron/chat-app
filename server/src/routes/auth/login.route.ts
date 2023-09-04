@@ -1,6 +1,6 @@
 import passport from "passport";
 import { Router } from "express";
-import { postLoginLocal } from "./login.controller.js";
+import { postLoginLocal } from "./login.controller";
 
 export const login_router = Router();
 

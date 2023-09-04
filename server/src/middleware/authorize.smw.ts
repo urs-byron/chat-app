@@ -1,8 +1,8 @@
-import { iUser } from "../models/user.imodel.js";
+import { iUser } from "../models/user.imodel";
 import { Socket } from "socket.io";
-import { newApiError } from "../global/httpErrors.global.js";
-import { ExtendedError } from "socket.io/dist/namespace.js";
-import { SocketMethods } from "../services/socket.srvcs.js";
+import { newApiError } from "../global/httpErrors.global";
+import { ExtendedError } from "socket.io/dist/namespace";
+import { SocketMethods } from "../services/socket.srvcs";
 
 export type SocketHandler = (
   socket: Socket,

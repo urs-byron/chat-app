@@ -251,17 +251,10 @@ describe("Get Relations Sub Fxs", () => {
     }, 15000);
 
     test("if fx would return empty array after deleting index caches", async () => {
-      const tx = RedisMethods.client.multi();
-      let rel: iRelation;
-      let relKey: string;
-      for (rel of TestUtil.createDiffConRel()) {
-        relKey = RedisMethods.relationSetItemName(
-          user.act_id.accnt_id,
-          rel.accnt_id
-        );
-        tx.json.del(relKey);
-      }
-      await tx.exec();
+      await TestUtil.deleteRelCaches(
+        user.act_id.accnt_id,
+        TestUtil.createDiffConRel()
+      );
 
       const ac = await getCacheRels(
         user.act_id.accnt_id,

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getLougOut } from "./logout.controller.js";
+import { getLougOut } from "./logout.controller";
 
 export const logout_router = Router();
 

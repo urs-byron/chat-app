@@ -5,3 +5,9 @@ export interface PassportSession extends Session {
     user: string;
   };
 }
+
+export interface iStratOpt {
+  callbackURL: string;
+  clientID: string;
+  clientSecret: string;
+}

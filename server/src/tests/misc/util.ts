@@ -12,6 +12,7 @@ import { Group } from "../../models/group.model";
 import { User } from "../../models/user.model";
 import { iChat, iMsgBody } from "../../models/chat.imodel";
 import { Chat } from "../../models/chat.model";
+import { GenRelations, GenRequests } from "../../models/gen.model";
 
 export class TestUtil {
   /**
@@ -197,6 +198,74 @@ export class TestUtil {
   };
 
   /**
+   * This function takes in iRelation[] and independently deleted them from relation index.
+   *
+   * @param { string } userId
+   * @param { iRelation[] } rels
+   *
+   * @returns
+   *
+   * @static
+   */
+  static readonly createRelCaches = async (
+    userId: string,
+    rels: iRelation[]
+  ): Promise<void> => {
+    if (
+      rels === undefined ||
+      rels === null ||
+      !Array.isArray(rels) ||
+      !rels.length
+    )
+      return;
+
+    const tx = RedisMethods.client.multi();
+    let rel: iRelation;
+    let relKey: string;
+
+    for (rel of rels) {
+      relKey = RedisMethods.relationSetItemName(userId, rel.accnt_id);
+      tx.json.set(relKey, "$", RedisMethods.redifyObj(rel));
+    }
+
+    await tx.exec();
+  };
+
+  /**
+   * This function takes in iRelation[] and independently deleted them from relation index.
+   *
+   * @param { string } userId
+   * @param { iRelation[] } rels
+   *
+   * @returns
+   *
+   * @static
+   */
+  static readonly deleteRelCaches = async (
+    userId: string,
+    rels: iRelation[]
+  ): Promise<void> => {
+    if (
+      rels === undefined ||
+      rels === null ||
+      !Array.isArray(rels) ||
+      !rels.length
+    )
+      return;
+
+    const tx = RedisMethods.client.multi();
+    let rel: iRelation;
+    let relKey: string;
+
+    for (rel of rels) {
+      relKey = RedisMethods.relationSetItemName(userId, rel.accnt_id);
+      tx.json.del(relKey);
+    }
+
+    await tx.exec();
+  };
+
+  /**
    * This function saves sample user objects within Redis.
    *
    * @param { iUser[] } usrs
@@ -242,6 +311,40 @@ export class TestUtil {
     });
 
     await updateUserCacheRelations(tx);
+  };
+
+  /**
+   * This function stores iRelation objects to a GenRelation document.
+   * @param { string } relationsId
+   * @param { iRelation[] } relArr
+   * @returns { Promise<void> }
+   *
+   * @static
+   */
+  static readonly pushRelArrToRelDoc = async (
+    relationsId: string,
+    relArr: iRelation[]
+  ): Promise<void> => {
+    await GenRelations.updateOne(
+      { str_id: relationsId },
+      { $push: { [`relations.list`]: { $each: relArr } } }
+    );
+  };
+
+  /**
+   * This function stores iRelation objects to a GenRelation document.
+   * @param { string } relationsId
+   * @returns { Promise<void> }
+   *
+   * @static
+   */
+  static readonly pullAllFromRelDoc = async (
+    relationsId: string
+  ): Promise<void> => {
+    await GenRelations.updateOne(
+      { str_id: relationsId },
+      { $pull: { [`relations.list`]: {} } }
+    );
   };
 
   /**

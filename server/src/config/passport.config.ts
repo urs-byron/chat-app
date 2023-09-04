@@ -23,13 +23,7 @@ import {
   Strategy as GithubStrategy,
   Profile as GHProfile,
 } from "passport-github2";
-import { RedisMethods } from "../services/redis.srvcs";
-
-interface iStratOpt {
-  callbackURL: string;
-  clientID: string;
-  clientSecret: string;
-}
+import { iStratOpt } from "../models/auth.imodel";
 
 export class Passport {
   // --------------------------
@@ -141,6 +135,7 @@ export class Passport {
     if (validPass.isValid) return done(null, user);
     else return done(newApiError(400, "invalid password input"));
   };
+
   /**
    * This function contains the reagrding user authentication from Google login.
    *
@@ -258,7 +253,7 @@ export class Passport {
     if (user) return user;
 
     // ACCOUNT CREATION IF NULL IS SEARCHED
-    const new_user = await UserMethods.createUser(id, username, null, "github");
+    const new_user = await UserMethods.createUser(id, username, null, type);
     return new_user;
   };
 }

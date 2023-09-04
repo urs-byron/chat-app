@@ -1,19 +1,19 @@
-import { Group } from "../../models/group.model.js";
-import { APIError } from "../../global/httpErrors.global.js";
-import { newApiError } from "../../global/httpErrors.global.js";
-import { ChatMethods } from "../../data/chat.data.js";
+import { Group } from "../../models/group.model";
+import { APIError } from "../../global/httpErrors.global";
+import { newApiError } from "../../global/httpErrors.global";
+import { ChatMethods } from "../../data/chat.data";
 import { RequestHandler } from "express";
-import { GeneralMethods } from "../../data/misc.data.js";
-import { ValidateMethods } from "../../util/validate.util.js";
-import { PassportSession } from "../../models/auth.imodel.js";
+import { GeneralMethods } from "../../data/misc.data";
+import { ValidateMethods } from "../../util/validate.util";
+import { PassportSession } from "../../models/auth.imodel";
 import { UpdateWriteOpResult } from "mongoose";
-import { RedisMethods as redis } from "../../services/redis.srvcs.js";
+import { RedisMethods as redis } from "../../services/redis.srvcs";
 import {
   GenRelations,
   GenRequests,
   genRequestState,
   requestPath as reqPath,
-} from "../../models/gen.model.js";
+} from "../../models/gen.model";
 import {
   iGenRequestPath,
   iGenRequestBody,
@@ -25,8 +25,8 @@ import {
   iRelation,
   iGenRelations,
   iGenRequests,
-} from "../../models/gen.imodel.js";
-import { User, chatType } from "../../models/user.model.js";
+} from "../../models/gen.imodel";
+import { User, chatType } from "../../models/user.model";
 /*
 // URGENT
 validation --------- DONE

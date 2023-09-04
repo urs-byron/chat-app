@@ -1,20 +1,16 @@
 import passport from "passport";
 
-import { iUser, iUserDoc } from "../models/user.imodel";
-import { APIError, newApiError } from "../global/httpErrors.global";
-import { cookieMiddleware } from "../app";
-import { Server as NodeServer } from "node:https";
-import { RedisMethods as redis } from "./redis.srvcs";
-import { socketUserNotLoggedErr } from "../middleware/authorize.smw";
-import { Server as SocketServer, Socket } from "socket.io";
-import { postRequest, patchRequest } from "../events/request.event";
-import {
-  iGenRequestActions,
-  iGenRequestBody,
-  iRelation,
-} from "../models/gen.imodel";
+import { iUser } from "../models/user.imodel";
 import { postMessage } from "../events/chat.event";
+import { cookieMiddleware } from "../app";
 import { iChatType, iMsgBody } from "../models/chat.imodel";
+import { Server as NodeServer } from "node:https";
+import { APIError, newApiError } from "../global/httpErrors.global";
+import { RedisMethods as redis } from "./redis.srvcs";
+import { Server as SocketServer, Socket } from "socket.io";
+import { socketUserNotLoggedErr } from "../middleware/authorize.smw";
+import { postRequest, patchRequest } from "../events/request.event";
+import { iGenRequestActions, iGenRequestBody } from "../models/gen.imodel";
 
 export class SocketMethods {
   private static instance: SocketMethods;

@@ -1,5 +1,5 @@
-import { iUser } from "../models/user.imodel.js";
-import { newApiError } from "../global/httpErrors.global.js";
+import { iUser } from "../models/user.imodel";
+import { newApiError } from "../global/httpErrors.global";
 import { RequestHandler } from "express";
 
 export const userLoggedErr: RequestHandler = async (req, res, next) => {

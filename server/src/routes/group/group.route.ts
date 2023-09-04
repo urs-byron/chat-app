@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getGroup, getGroups, postGroup } from "./group.controller.js";
+import { getGroup, getGroups, postGroup } from "./group.controller";
 
 export const group_router = Router();
 
