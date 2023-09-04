@@ -45,7 +45,6 @@ describe("Post Request Sub Fxs", () => {
         recipientId,
         groupId
       );
-      console.log(requestPath, senderId, receiverId);
     });
   });
 

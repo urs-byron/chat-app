@@ -1,3 +1,5 @@
+import "dotenv/config";
+
 import passport from "passport";
 
 import { User } from "../models/user.model";
