@@ -750,9 +750,9 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
 
   /** This function connects client to other user based on data about connected peers. */
   private connectToSocketRooms(): void {
-    const chatIds = PeerComponent.chatPeerRelationsInfo.map(
-      (rel) => rel.chat_id
-    );
+    const chatIds = PeerComponent.chatPeerRelationsInfo
+      .filter((rel: iRelation) => !rel.block)
+      .map((rel: iRelation) => rel.chat_id);
 
     SocketMethods.socket?.emit(
       SocketMethods.joinRoomsEv,
