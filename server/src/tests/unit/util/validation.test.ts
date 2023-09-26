@@ -1,6 +1,9 @@
 import { UserMethods } from "../../../data/user.data";
 import { iValidityType } from "../../../global/validity.global";
-import { ValidateMethods as valid } from "../../../util/validate.util";
+import {
+  ValidateMethods,
+  ValidateMethods as valid,
+} from "../../../util/validate.util";
 
 describe("Validation Methods", () => {
   // CONSTANT VAR
@@ -482,6 +485,40 @@ describe("Validation Methods", () => {
     });
 
     // further combination of error is not necessary since typescript prohibits them
+  });
+
+  describe("Chat IDs Array Input", () => {
+    /**
+     * Test 1 - return valid res from empty array
+     * Test 2 - return error res from invalid argument type
+     * Test 3 - return valid res from valid arguments
+     *
+     */
+
+    test("if fx would return valid response from empty array", () => {
+      const t1 = valid.chatIDs([]);
+      expect(t1).toStrictEqual(validRes);
+    });
+
+    test("if fx would return error from wrongly typed argument", () => {
+      const t21 = valid.chatIDs(["sdsd", 51561, null] as string[]);
+      expect(t21).toStrictEqual(invalidRes("ChatIDs are invalid."));
+      const t22 = valid.chatIDs(["sdsdsad", null] as string[]);
+      expect(t22).toStrictEqual(invalidRes("ChatIDs are invalid."));
+      const t23 = valid.chatIDs(["sdsd", 6584654654] as string[]);
+      expect(t23).toStrictEqual(invalidRes("ChatIDs are invalid."));
+      const t24 = valid.chatIDs(["sdsdsad", 6584654654] as string[]);
+      expect(t24).toStrictEqual(invalidRes("ChatIDs are invalid."));
+    });
+
+    test("if fx would return valid response from valid argument", () => {
+      const t31 = valid.chatIDs(["68574684"]);
+      expect(t31).toStrictEqual(validRes);
+      const t32 = valid.chatIDs(["68574684", "68574684"]);
+      expect(t32).toStrictEqual(validRes);
+      const t33 = valid.chatIDs(["68574684", "68574684", "68574684"]);
+      expect(t33).toStrictEqual(validRes);
+    });
   });
 
   describe("Validity", () => {

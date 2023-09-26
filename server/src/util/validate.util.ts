@@ -369,6 +369,27 @@ export class ValidateMethods {
 
     return this.setValidity(validity);
   }
+  static chatIDs(chatIDs: string[]): iValidityType {
+    let validFlag: boolean = true;
+
+    if (
+      chatIDs === undefined ||
+      chatIDs === null ||
+      !Array.isArray(chatIDs) ||
+      !chatIDs.length
+    )
+      return this.setValidity([null]);
+
+    let chatId: string;
+    for (chatId of chatIDs) {
+      if (typeof chatId !== "string" || !chatId.length) {
+        validFlag = false;
+        break;
+      }
+    }
+
+    return this.setValidity([validFlag ? null : "ChatIDs are invalid."]);
+  }
   static setValidity(validity: Array<string | null>): iValidityType {
     if (validity.join("")) {
       return {

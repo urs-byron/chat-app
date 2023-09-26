@@ -1,5 +1,15 @@
 import { GeneralUtil } from "../../util/misc.util";
-import { iChatMsgs, iChatReqBody } from "../../models/chat.imodel";
+import {
+  chatIdsAggregateMatcher,
+  chatIdsAggregateMatcherArr,
+  chatIdsAggregateProject,
+  chatIdsAggregateRec,
+  iChatMsgs,
+  iChatReqBody,
+  msgsIDsAggregate,
+  topMsgsAggregate,
+  topMsgsAggregateItem,
+} from "../../models/chat.imodel";
 import { AggregateSteps } from "redis";
 import { RequestHandler } from "express";
 import { chatMsgSkipCnt, relSkipCnt } from "../../global/search.global";
@@ -312,3 +322,169 @@ export const getTopChatMsg: RequestHandler = async (req, res, next) => {
   // RESPONSE
   res.status(200).json({ statusCode: 200, data: tMsg[0] });
 };
+
+/*
+// URGENT
+validation --------- DONE
+caching ------------ DONE
+promisify ---------- DONE
+error-handling ----- DONE
+response ----------- DONE
+
+// URGENT
+import ------------- DONE
+comment ------------ DONE
+*/
+
+export const getTopMsgs: RequestHandler = async (req, res, next) => {
+  // DATA GATHERING
+  /** Array of chat IDs */
+  const { chatIds } = req.body as { chatIds: string[] };
+
+  // VALIDATION
+  const IDvalid = ValidateMethods.chatIDs(chatIds);
+  if (!IDvalid.isValid)
+    return next(newApiError(400, "client sent invalid data", IDvalid.error));
+
+  // DATA GATHERING - AGGREGATION
+  /** Array of object chat ID filter */
+  const aggregateMatcher = chatAggregateMatcherFilter(chatIds);
+
+  let msgsIDs: string[] | APIError | Error;
+
+  const c = await redis.client.ft.info(redis.chatIdxStr);
+  if (parseInt(c.numDocs)) {
+    msgsIDs = await getCacheMsgsIDs(chatIds);
+    if (msgsIDs instanceof APIError || msgsIDs instanceof Error)
+      return next(msgsIDs);
+  } else {
+    msgsIDs = await getDocMsgIDs(aggregateMatcher);
+    if (msgsIDs instanceof APIError || msgsIDs instanceof Error)
+      return next(msgsIDs);
+  }
+};
+
+/**
+ * This function accepts an array of chat ID strings and transforms them into an object understandable by the Mongoose Aggregate method.
+ *
+ * @param { string[] } chatIds
+ * @returns { chatIdsAggregateMatcherArr }
+ */
+export function chatAggregateMatcherFilter(
+  chatIds: string[]
+): chatIdsAggregateMatcherArr {
+  return chatIds.map((id: string) => {
+    return { chat_id: id };
+  });
+}
+
+/**
+ * This function aggregates matching cache Chat IDs and returns the Message IDs.
+ *
+ * @param { string[] } chatIds
+ * @returns { Promise<string[] | APIError | Error> }
+ */
+export async function getCacheMsgsIDs(
+  chatIds: string[]
+): Promise<string[] | APIError | Error> {
+  try {
+    const msgsIDs = (
+      await redis.client.ft.aggregate(
+        redis.chatIdxStr,
+        `@chat_id:(${chatIds.join("|")})`,
+        { LOAD: ["@msgs_id"] }
+      )
+    ).results.map((m: any) => m.msgs_id);
+
+    return msgsIDs;
+  } catch (err) {
+    return newApiError(500, "server failed to aggragete msg IDs", err);
+  }
+}
+
+/**
+ * This function accepts an array of chat ID strings and transforms them into an object understandable by the Mongoose Aggregate method.
+ *
+ * @param { string[] } msgsIds
+ * @returns { msgsIDsAggregate }
+ */
+export function msgsAggregateMatcherFilter(
+  msgsIds: string[]
+): msgsIDsAggregate {
+  return msgsIds.map((id: string) => {
+    return { str_id: id };
+  });
+}
+
+/**
+ * This function aggregates matching document Chat IDs and returns the Message IDs.
+ *
+ * @param { chatIdsAggregateMatcherArr } aggregateMatcher
+ * @param { chatIdsAggregateProject } aggregateProject
+ * @returns { Promise<msgsIDsAggregate | APIError | Error> }
+ */
+export async function getDocMsgIDs(
+  aggregateMatcher: chatIdsAggregateMatcherArr
+): Promise<string[] | APIError | Error> {
+  /** Object field filter */
+  const aggregateProject: chatIdsAggregateProject = { _id: false, msgs_id: 1 };
+
+  try {
+    const msgsIds = (
+      await Chat.aggregate<Record<"msgs_id", string>>([
+        { $match: { $or: aggregateMatcher } },
+        { $project: aggregateProject },
+      ])
+    ).map((p: Record<"msgs_id", string>) => p.msgs_id);
+
+    return msgsIds;
+  } catch (err) {
+    return newApiError(500, "server is unable to aggregate message IDs", err);
+  }
+}
+
+/**
+ * This function returns an array containing the top (highest timeReceived) message of specific message documents. Note that:
+ * - no object will be returned even if matching document if found when no message is available
+ * - thus, matching msg IDs set as argument may not equate to the length of returned top messages
+ *
+ * @param { msgsIDsAggregate } msgsIDs - objectified array of msg IDs that will act as a matcher for mongoose agggregate API
+ * @returns { Promise<topMsgsAggregate | APIError | Error> }
+ *
+ * @static
+ */
+export async function getTopMsgDocs(
+  msgsIDs: msgsIDsAggregate
+): Promise<topMsgsAggregate | APIError | Error> {
+  try {
+    const m = await ChatMessages.aggregate<topMsgsAggregateItem>([
+      { $match: { $or: msgsIDs, list: { $ne: [] } } },
+      {
+        $project: {
+          _id: -1,
+          top: {
+            $reduce: {
+              input: "$list", // Specify the 'items' array
+              initialValue: { timeReceived: 0 }, // Initialize with a quantity of 0
+              in: {
+                $cond: {
+                  if: { $gt: ["$$this.timeReceived", "$$value.timeReceived"] }, // Compare quantities
+                  then: "$$this", // Replace if the current item has a higher quantity
+                  else: "$$value", // Keep the previous item
+                },
+              },
+            },
+          },
+        },
+      },
+    ]);
+
+    return m;
+  } catch (err) {
+    return newApiError(
+      500,
+      "server is unable to aggregate top message documents",
+      err
+    );
+  }
+}

@@ -55,3 +55,12 @@ export interface iChat {
 export interface iChatMsgsDoc extends iChatMsgs, Document {}
 export interface iChatRulesDoc extends iChatRules, Document {}
 export interface iChatDoc extends iChat, Document {}
+
+export type chatIdsAggregateProject = Record<"msgs_id", 0 | 1> &
+  Record<string, any>;
+export type chatIdsAggregateMatcher = Record<"chat_id", string>;
+export type chatIdsAggregateMatcherArr = chatIdsAggregateMatcher[];
+export type chatIdsAggregateRec = Record<"msgs_id", string>;
+export type msgsIDsAggregate = Record<"str_id", string>[];
+export type topMsgsAggregateItem = Record<"top", iMsgBody>;
+export type topMsgsAggregate = topMsgsAggregateItem[];

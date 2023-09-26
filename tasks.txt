@@ -39,22 +39,22 @@ user | group search skip-next logic
 └ ┴ ┘
 
 ///// URGENT
---- type def & generics
---- null || undefined || !Array.isArray() || key in Obj
---- Promise.allSettled
---- TDD
 
 ///// CURRENT TASKS
+peer list top message aggregation
 
 CLIENT
+--- blocked users
+--- incoming muted message
 --- block, unblock, approve of groups must reflect on session storage && groupClass
 --- if user is already on mute before block, remove user from mute after block
 
 SERVER
+--- topMessages route
+--- hBump update upon message logic
+--- socket routes fix - error catching & mw
 --- db aggregate[0] change 
 --- fix redis.discard use
 --- object bool validations
---- e2e testing
+--- unit - e2e - integ
 
-optional parameters checker
-if request action is reject, cancel, do not instantiate new msgList

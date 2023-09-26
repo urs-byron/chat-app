@@ -1,18 +1,20 @@
+import { Chat, ChatMessages } from "../../models/chat.model";
+import { User } from "../../models/user.model";
 import { iUser } from "../../models/user.imodel";
+import { Group } from "../../models/group.model";
 import { iGroup } from "../../models/group.imodel";
 import { iRelation } from "../../models/gen.imodel";
+import { GenRelations } from "../../models/gen.model";
 import { RedisMethods } from "../../services/redis.srvcs";
 import { GeneralMethods } from "../../data/misc.data";
+import { iChat, iChatDoc, iMsgBody } from "../../models/chat.imodel";
 import {
   createGrpRelObj,
   updateUserCacheRelations,
   updateUserDbRelations,
 } from "../../routes/group/group.controller";
-import { Group } from "../../models/group.model";
-import { User } from "../../models/user.model";
-import { iChat, iMsgBody } from "../../models/chat.imodel";
-import { Chat } from "../../models/chat.model";
-import { GenRelations, GenRequests } from "../../models/gen.model";
+import { ChatMethods } from "../../data/chat.data";
+import { APIError } from "../../global/httpErrors.global";
 
 export class TestUtil {
   /**
@@ -66,6 +68,15 @@ export class TestUtil {
 
     return users;
   };
+
+  /**
+   * This function returns an array of chat objects.
+   *
+   * @param { number } [i] - optional number of chat objects to be created, default as 5
+   * @returns { iChat[] }
+   *
+   * @static
+   */
   static readonly createSampleChat = (i: number = 5): iChat[] => {
     const chatArr: iChat[] = [];
 
@@ -79,17 +90,27 @@ export class TestUtil {
 
     return chatArr;
   };
-  static readonly createSampleMsgs = (i: number = 5): iMsgBody[] => {
+
+  /**
+   * This function returns an array of messages.
+   *
+   * @param { number } [i] - optional length for returned messages array, default as 5
+   * @returns
+   */
+  static readonly createSampleMsgs = (
+    chatID: string,
+    i: number = 5
+  ): iMsgBody[] => {
     const chatArr: iMsgBody[] = [];
 
     for (let index = 0; index < i; index++) {
       chatArr.push({
         msg: `sampleChatId${index}`,
         msgId: `sampleMsgsId${index}`,
-        chatId: `sampleChatId${index}`,
+        chatId: chatID,
         senderId: `sampleSenderId${index}`,
         senderName: `sampleSenderName${index}`,
-        timeReceived: index,
+        timeReceived: Math.floor(Math.random() * 100),
       });
     }
 
@@ -423,14 +444,68 @@ export class TestUtil {
       );
     });
   };
+
+  /**
+   * This function stores iChat objects in the MongoDB chat collection.
+   *
+   * @param { iChat[] } cArr
+   * @returns { Promise<void> }
+   *
+   * @static
+   */
   static readonly createSampleChatDocs = async (
     cArr: iChat[]
   ): Promise<void> => {
+    if (
+      cArr === undefined ||
+      cArr === null ||
+      !Array.isArray(cArr) ||
+      !cArr.length
+    )
+      return;
+
     let c: iChat;
+    let p = [];
 
     for (c of cArr) {
-      await Chat.create(c);
+      p.push(Chat.create(c));
     }
+
+    await Promise.allSettled(p);
+  };
+
+  /**
+   * This function stores iChat objects in the MongoDB chat index.
+   *
+   * @param { iChat[] } cArr
+   * @returns { Promise<void> }
+   *
+   * @static
+   */
+  static readonly createSampleChatCache = async (
+    cArr: iChat[]
+  ): Promise<void> => {
+    if (
+      cArr === undefined ||
+      cArr === null ||
+      !Array.isArray(cArr) ||
+      !cArr.length
+    )
+      return;
+
+    const tx = RedisMethods.client.multi();
+    let c: iChat;
+    let cKey: string;
+
+    for (c of cArr) {
+      tx.json.set(
+        RedisMethods.chatItemName(c.chat_id),
+        "$",
+        RedisMethods.redifyObj(c)
+      );
+    }
+
+    await tx.exec();
   };
   static readonly createSampleMsgsCache = async (
     chatId: string,
@@ -459,5 +534,81 @@ export class TestUtil {
     });
 
     await tx.exec();
+  };
+
+  /**
+   * This function will generate a mock for any chat relation document including Chat, ChatMessages, & ChatRules Document within the MongoDB Database.
+   *
+   * @param { number } i - times a chat information document will be created; default = 5
+   * @returns { Promise<Error | string[]> }
+   *
+   * @static
+   */
+  static readonly createSampleChatInfoDocs = async (
+    i: number = 5
+  ): Promise<Error | string[]> => {
+    const pr: Promise<string | Error | APIError>[] = [];
+
+    let j: number = 0;
+    while (j < i) {
+      pr.push(ChatMethods.createChat());
+      j++;
+    }
+
+    const prs = await Promise.allSettled(pr);
+
+    const c = prs.map((p) => {
+      if (p.status === "fulfilled") return p.value;
+      else throw new Error(`test failed: ${p.reason}`);
+    }) as string[];
+
+    return c;
+  };
+
+  /**
+   * This function returns the corresponding string from a unique mock chat info document.
+   *
+   * @param chatIds - array of chat ID strings
+   * @returns
+   *
+   * @static
+   */
+  static readonly getMsgIDsDoc = async (
+    chatIds: string[]
+  ): Promise<Error | (string | null)[]> => {
+    const pr = [];
+
+    let c: string;
+    for (c of chatIds) {
+      pr.push(Chat.findOne({ chat_id: c } as iChat).lean());
+    }
+
+    const prs = await Promise.allSettled(pr);
+
+    const ms = prs.map((p) => {
+      if (p.status === "fulfilled") return (p.value as iChat).msgs_id;
+      else throw new Error(`test failed: ${p.reason}`);
+    }) as (string | null)[];
+
+    return ms;
+  };
+
+  /**
+   * This function stores a set of message objects to a Message Document list property.
+   *
+   * @param { string } msgId
+   * @param { iMsgBody[] } msgs
+   * @returns { Promise<void> }
+   *
+   * @static
+   */
+  static readonly createSampleMsgsDoc = async (
+    msgId: string,
+    msgs: iMsgBody[]
+  ): Promise<void> => {
+    await ChatMessages.updateOne(
+      { str_id: msgId },
+      { $push: { list: { $each: msgs } } }
+    );
   };
 }
