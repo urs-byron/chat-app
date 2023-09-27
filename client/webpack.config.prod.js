@@ -22,8 +22,6 @@ module.exports = {
   output: {
     filename: "bundle.js",
     path: path.resolve(__dirname, "..", "server", "public"),
-    // publicPath: path.resolve(__dirname, "public"),
-    // publicPath: "./public",
   },
   plugins: [
     new cleanPlugin.CleanWebpackPlugin(),

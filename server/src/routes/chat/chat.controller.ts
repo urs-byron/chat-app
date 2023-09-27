@@ -339,7 +339,7 @@ comment ------------ DONE
 export const getTopMsgs: RequestHandler = async (req, res, next) => {
   // DATA GATHERING
   /** Array of chat IDs */
-  const { chatIds } = req.body as { chatIds: string[] };
+  const chatIds = req.body as string[];
 
   // VALIDATION
   const IDvalid = ValidateMethods.chatIDs(chatIds);
@@ -348,20 +348,36 @@ export const getTopMsgs: RequestHandler = async (req, res, next) => {
 
   // DATA GATHERING - AGGREGATION
   /** Array of object chat ID filter */
+
   const aggregateMatcher = chatAggregateMatcherFilter(chatIds);
 
   let msgsIDs: string[] | APIError | Error;
 
   const c = await redis.client.ft.info(redis.chatIdxStr);
-  if (parseInt(c.numDocs)) {
-    msgsIDs = await getCacheMsgsIDs(chatIds);
-    if (msgsIDs instanceof APIError || msgsIDs instanceof Error)
-      return next(msgsIDs);
-  } else {
-    msgsIDs = await getDocMsgIDs(aggregateMatcher);
-    if (msgsIDs instanceof APIError || msgsIDs instanceof Error)
-      return next(msgsIDs);
-  }
+
+  if (parseInt(c.numDocs)) msgsIDs = await getCacheMsgsIDs(chatIds);
+  else msgsIDs = await getDocMsgIDs(aggregateMatcher);
+
+  if (msgsIDs instanceof APIError || msgsIDs instanceof Error)
+    return next(msgsIDs);
+
+  // VALIDATION
+  /** Return immediately if  */
+  if (chatIds.length !== msgsIDs.length)
+    return next(
+      newApiError(400, "client sent invalid data", [
+        "certain client chatId is invalid",
+      ])
+    );
+
+  // DATA GATHERING - AGGREGATION
+  /** Array of most recent message object(s) from certain message list document(s). */
+  const topMsgs = await getTopMsgDocs([...msgsAggregateMatcherFilter(msgsIDs)]);
+  if (topMsgs instanceof APIError || topMsgs instanceof Error)
+    return next(topMsgs);
+
+  // RESPONSE
+  return res.status(200).json({ statusCode: 200, data: topMsgs });
 };
 
 /**
@@ -459,9 +475,10 @@ export async function getTopMsgDocs(
   try {
     const m = await ChatMessages.aggregate<topMsgsAggregateItem>([
       { $match: { $or: msgsIDs, list: { $ne: [] } } },
+      { $sort: { str_id: -1 } },
       {
         $project: {
-          _id: -1,
+          _id: false,
           top: {
             $reduce: {
               input: "$list", // Specify the 'items' array

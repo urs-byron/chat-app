@@ -402,15 +402,16 @@ export async function httpGetMsgs(chatData: iChatReqBody) {
   }
 }
 
-export async function httpGetTopMsg(chatId: string) {
+export async function httpGetTopMsg(chatIds: string[]) {
   let response: Response;
   let data!: iHttpResponse;
 
   try {
-    response = await fetch(`/1/chat/${chatId}`, {
-      method: "GET",
+    response = await fetch(`/1/chat/top`, {
+      method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(chatIds),
     });
   } catch (err) {
     return err;

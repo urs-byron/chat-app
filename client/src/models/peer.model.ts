@@ -1,3 +1,5 @@
+import { iMsgBody } from "./msgList.model";
+
 export const relationType: {
   contact: "contact";
   mute: "mute";
@@ -49,3 +51,6 @@ export interface iRelationAct {
   userAction: "archive" | "block" | "mute";
   actionValue: boolean;
 }
+
+export type topMsgsAggregateItem = Record<"top", iMsgBody>;
+export type topMsgsAggregate = topMsgsAggregateItem[];

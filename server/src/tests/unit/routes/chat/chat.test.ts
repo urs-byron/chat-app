@@ -431,11 +431,15 @@ describe("GET Top Msgs Sub Functions", () => {
   });
 
   describe("Get Top Document Message Fx", () => {
-    let chatIDs: string[] = [];
-    let msgsIDs: string[] = [];
-    let msgsIDsAggArr: msgsIDsAggregate = [];
-    let targetChatId: string;
-    let targetMsgsId: string;
+    let chatIDs: string[] = [],
+      msgsIDs: string[] = [],
+      msgsIDsAggArr: msgsIDsAggregate = [],
+      targetChatId: string,
+      targetMsgsId: string,
+      sampleMsgs0: iMsgBody[],
+      timeArr0: iMsgBody[],
+      sampleMsgs1: iMsgBody[],
+      timeArr1: iMsgBody[];
 
     beforeAll(async () => {
       chatIDs = [...((await TestUtil.createSampleChatInfoDocs()) as string[])];
@@ -445,11 +449,20 @@ describe("GET Top Msgs Sub Functions", () => {
       msgsIDsAggArr = [...msgsAggregateMatcherFilter(msgsIDs)];
       targetChatId = chatIDs[0];
       targetMsgsId = msgsIDs[0];
+
+      sampleMsgs0 = TestUtil.createSampleMsgs(targetChatId);
+      timeArr0 = sampleMsgs0
+        .sort((a, b) => b.timeReceived - a.timeReceived)
+        .slice(0, 1);
+      sampleMsgs1 = TestUtil.createSampleMsgs(chatIDs[1]);
+      timeArr1 = sampleMsgs1
+        .sort((a, b) => b.timeReceived - a.timeReceived)
+        .slice(0, 1);
     }, 15000);
 
     /**
      * Test 1 - return empty aggregate from unpopulated un
-     * Test 2 - return empty controlled results from aggregate
+     * Test 2 & 3 - return controlled results from aggregate
      */
 
     test("if fx would return empty aggregate", async () => {
@@ -458,31 +471,34 @@ describe("GET Top Msgs Sub Functions", () => {
     }, 15000);
 
     test("if fx would recognize populated msgs", async () => {
-      // 1
-      const sampleMsgs0 = TestUtil.createSampleMsgs(targetChatId);
-      const timeArr0 = sampleMsgs0
-        .sort((a, b) => b.timeReceived - a.timeReceived)
-        .slice(0, 1);
-
       await TestUtil.createSampleMsgsDoc(targetMsgsId, sampleMsgs0);
       const t20 = (await getTopMsgDocs(msgsIDsAggArr)) as topMsgsAggregate;
       expect(t20.length).toEqual<number>(1);
 
       expect(t20[0].top.chatId).toEqual<string>(targetChatId);
       expect(t20[0].top.timeReceived).toEqual(timeArr0[0].timeReceived);
+    }, 30000);
 
-      // 2
-      const sampleMsgs1 = TestUtil.createSampleMsgs(chatIDs[1]);
-      const timeArr1 = sampleMsgs1
-        .sort((a, b) => b.timeReceived - a.timeReceived)
-        .slice(0, 1);
-
+    test("if fx would recognize another populated msgs", async () => {
       await TestUtil.createSampleMsgsDoc(msgsIDs[1], sampleMsgs1);
       const t21 = (await getTopMsgDocs(msgsIDsAggArr)) as topMsgsAggregate;
 
       expect(t21.length).toEqual<number>(2);
-      expect(t21[1].top.chatId).toEqual<string>(chatIDs[1]);
-      expect(t21[1].top.timeReceived).toEqual(timeArr1[0].timeReceived);
+
+      const t211: boolean =
+        (t21[0].top.chatId === targetChatId &&
+          t21[1].top.chatId === chatIDs[1]) ||
+        (t21[0].top.chatId === chatIDs[1] &&
+          t21[1].top.chatId === targetChatId);
+
+      const t212: boolean =
+        (t21[0].top.timeReceived === timeArr1[0].timeReceived &&
+          t21[1].top.timeReceived === timeArr0[0].timeReceived) ||
+        (t21[0].top.timeReceived === timeArr0[0].timeReceived &&
+          t21[1].top.timeReceived === timeArr1[0].timeReceived);
+
+      expect(t211).toBe<boolean>(true);
+      expect(t212).toBe<boolean>(true);
     }, 30000);
 
     afterAll(async () => {

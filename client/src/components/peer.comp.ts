@@ -24,6 +24,7 @@ import {
   iRelationAct,
   iSearchItems,
   iSearchValues,
+  topMsgsAggregate,
 } from "../models/peer.model";
 
 /**
@@ -56,6 +57,8 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
   private relSkip: number = 0;
   /** skip limit constant for peer list pagination logic */
   private relSkipConst: number = 15;
+  /** HTML Peer Item count of retrieved top message for peer list pagination logic */
+  private relTopCount: number = 0;
   /** skip counter for search list pagination logic */
   private searchSkip: number = 0;
   /** skip limit constant for search list pagination logic */
@@ -164,9 +167,8 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
       ?.classList.add("chat-search-type");
     this.chatSearchTypes.dataset.chatType = chatType.user;
 
-    this.generateContactItems();
+    await this.generateContactItems();
     this.createFirstPeerMsgComp();
-    await this.fetchTopMsgs();
   }
 
   // ----------------------------
@@ -679,12 +681,10 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
    */
   private readonly scrollBottomPeerList = async (e: Event): Promise<void> => {
     const t = e.target as HTMLElement;
+    const relCount = PeerComponent.chatPeerRelationsInfo.length;
 
-    if (t.scrollTop === t.scrollHeight - t.offsetHeight) {
+    if (t.scrollTop === t.scrollHeight - t.offsetHeight && relCount) {
       this.generateContactItems();
-      await this.fetchTopMsgs();
-
-      this.relSkip++;
     }
   };
 
@@ -818,7 +818,7 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
   }
 
   /** This function loops over peer item data and transforms them into HTML elements. */
-  private generateContactItems = (): void => {
+  private generateContactItems = async (): Promise<void> => {
     const { start, end } = this.getStartEnd(this.relSkip)!;
     let i: number = start;
     if (start > PeerComponent.chatPeerRelationsInfo.length) return;
@@ -828,11 +828,16 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
     );
 
     let item: iRelation;
+    let HTMLArr = [];
     for (item of slicedArr) {
       if (i === end) break;
-      PeerComponent.createRelationItemHTML(item);
+      HTMLArr.push(PeerComponent.createRelationItemHTML(item));
       i++;
     }
+
+    await this.fetchTopMsgs(HTMLArr);
+
+    this.relSkip++;
   };
 
   /**
@@ -845,7 +850,7 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
    */
   private static readonly createRelationItemHTML = (
     item: iRelation
-  ): HTMLDivElement | void => {
+  ): HTMLDivElement => {
     item = GenUtil.relationStrIntToBool(item) as iRelation;
     const userValid = Validate.contactItem(item);
 
@@ -1069,41 +1074,16 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
    * - loops over a certain range of peer item HTML
    * - fetch its most recent message, if available
    */
-  private readonly fetchTopMsgs = async () => {
-    let h: HTMLDivElement;
-    let i: number = 0;
-    const { start, end } = this.getStartEnd(this.relSkip)!;
-    this.relSkip++;
-    const slicedArrHTML = PeerComponent.chatPeerRelationsHTML.slice(start, end);
-
-    for (h of slicedArrHTML) {
-      if (i === end) break;
-      await this.fetchTopMsg(h);
-      i++;
-    }
-  };
-
-  /**
-   * This function requests an HTTP GET to the server to retrieve its most recent message.
-   *
-   * @param { HTMLDivElement } peerHTML - peer item html as source of chat ID
-   * @returns { Promise<void> }
-   */
-  private readonly fetchTopMsg = async (
-    peerHTML: HTMLDivElement
-  ): Promise<void> => {
-    if (
-      !(peerHTML instanceof HTMLDivElement) ||
-      peerHTML.dataset.chatId === undefined ||
-      peerHTML.dataset.chatId === null ||
-      !peerHTML.dataset.chatId.length
-    )
-      return;
+  private readonly fetchTopMsgs = async (slicedArrHTML: HTMLDivElement[]) => {
+    const chatIds: Array<string | undefined> = slicedArrHTML
+      .map((h: HTMLDivElement): string | undefined => h.dataset.chatId)
+      .filter(
+        (s: string | undefined) => s !== undefined && s !== null && s.length > 0
+      );
 
     let response!: iHttpResponse;
-
     try {
-      response = await tryCatch(httpGetTopMsg, peerHTML.dataset.chatId);
+      response = await tryCatch(httpGetTopMsg, chatIds);
     } catch (err) {
       // return error.showComp(
       error.showComp("ERROR: client is unable to fetch top chat message", err);
@@ -1117,11 +1097,33 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
     );
 
     if (!httpValid) return;
-    const data = response.data.data as iMsgBody;
 
-    if (data === undefined || data === null || !("msg" in data)) return;
+    const data = response.data.data as topMsgsAggregate;
+    if (data === undefined || data === null || !data.length) return;
 
-    PeerComponent.updateMsg(peerHTML, data);
+    this.relTopCount += data.length;
+    PeerComponent.updateMsgs(slicedArrHTML, data);
+  };
+
+  /**
+   * This function requests an HTTP GET to the server to retrieve its most recent message.
+   *
+   * @param { HTMLDivElement } htmlArr - peer item html as source of chat ID
+   * @param { any } data -
+   *
+   * @static
+   */
+  private static readonly updateMsgs = (
+    HTMLArr: HTMLDivElement[],
+    data: topMsgsAggregate
+  ): void => {
+    for (const msg of data) {
+      for (const html of HTMLArr) {
+        if (msg.top.chatId === html.dataset.chatId) {
+          PeerComponent.updateMsg(html, msg.top);
+        }
+      }
+    }
   };
 
   /**
@@ -1129,6 +1131,8 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
    *
    * @param { HTMLDivElement } html - HTML element to be modified
    * @param { iMsgBody } data - message data
+   *
+   * @static
    */
   private static readonly updateMsg = (
     html: HTMLDivElement,

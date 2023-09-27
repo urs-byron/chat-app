@@ -378,7 +378,7 @@ export class ValidateMethods {
       !Array.isArray(chatIDs) ||
       !chatIDs.length
     )
-      return this.setValidity([null]);
+      return this.setValidity(["Empty ChatIDs array."]);
 
     let chatId: string;
     for (chatId of chatIDs) {
