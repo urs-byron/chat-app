@@ -1141,7 +1141,7 @@ export class PeerComponent extends Component<HTMLDivElement, HTMLElement> {
     const t = html.querySelector("span:first-child")!;
     t.textContent = GenUtil.milliToTime(+data.timeReceived);
     const m = html.querySelector("span:last-child")!;
-    m.textContent = " - ".concat(data.msg.slice(0, 10)).concat(" ...");
+    m.textContent = " - ".concat(data.msg.slice(0, 9)).concat(" ...");
   };
 
   /**
