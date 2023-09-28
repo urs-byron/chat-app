@@ -1,6 +1,7 @@
 import passport from "passport";
 
 import { User } from "../models/user.model";
+import { iStratOpt } from "../models/auth.imodel";
 import { UserMethods } from "../data/user.data";
 import { GenSecurity } from "../models/gen.model";
 import { iValidityType } from "../global/validity.global";
@@ -23,7 +24,6 @@ import {
   Strategy as GithubStrategy,
   Profile as GHProfile,
 } from "passport-github2";
-import { iStratOpt } from "../models/auth.imodel";
 
 export class Passport {
   // --------------------------
@@ -52,8 +52,8 @@ export class Passport {
   /** Custom GitHub Passport Options: cb, id, sercret. */
   static readonly github_opts: iStratOpt = {
     callbackURL: "/1/auth/login/github/callback",
-    clientID: process.env.GITHUB_CLIENT_ID!,
-    clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+    clientID: process.env.CLIENT_ID_GITHUB!,
+    clientSecret: process.env.CLIENT_SECRET_GITHUB!,
   };
 
   private constructor() {}

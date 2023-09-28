@@ -12,6 +12,8 @@ jobs:
       DB_DEV_STRING: ${{ secrets.DB_DEV_STRING }}
       DB_PROD_STRING: ${{ secrets.DB_PROD_STRING }}
       DB_TEST_STRING: ${{ secrets.DB_TEST_STRING }}
+      CLIENT_ID_GITHUB: ${{ secrets.CLIENT_ID_GITHUB }}
+      CLIENT_SECRET_GITHUB: ${{ secrets.CLIENT_SECRET_GITHUB }}
       FACEBOOK_CLIENT_ID: ${{ secrets.FACEBOOK_CLIENT_ID }}
       FACEBOOK_CLIENT_SECRET: ${{ secrets.FACEBOOK_CLIENT_SECRET }}
       GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
