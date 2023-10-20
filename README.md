@@ -11,7 +11,7 @@
 
 <hr>
 
-<h2>Project Features</h2>
+<h2>Project Key Features</h2>
 <p>Secure Local Registration & 3rd Party Authentication</p>
 <p>Faster Data Processing with Redis Stack</p>
 <p>Real-time data communication with Socket.IO</p>
